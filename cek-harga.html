@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cek Harga Produk – Tasaji</title>
+<link rel="icon" type="image/png" href="favicon.png">
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      background:#f5f5f7;
+      color:#333;
+    }
+
+    header{
+      background:#fff;
+      border-bottom:1px solid #e0e0e0;
+      padding:14px 20px;
+      font-size:18px;
+      font-weight:700;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    main{
+      padding:16px;
+      height: calc(100vh - 56px);
+      overflow:hidden;
+    }
+
+    .wrap{
+      height:100%;
+      display:flex;
+      gap:16px;
+    }
+
+    /* =========================
+       LEFT: PRODUCT PANEL
+    ========================== */
+    .left{
+      flex: 1;
+      min-width: 520px;
+      background:#fff;
+      border:1px solid #eee;
+      border-radius:12px;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .toolbar{
+      padding:12px;
+      border-bottom:1px solid #eee;
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+
+    .search{
+      flex:1;
+      display:flex;
+      align-items:center;
+      border:1px solid #ddd;
+      border-radius:10px;
+      padding:10px 12px;
+      background:#fff;
+      gap:10px;
+    }
+
+    .search input{
+      border:none;
+      outline:none;
+      width:100%;
+      font-size:14px;
+    }
+
+    .meta-small{
+      font-size:12px;
+      color:#777;
+      padding:0 12px 12px;
+    }
+
+    .grid{
+      padding:12px;
+      overflow:auto;
+      flex:1;
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap:10px;
+      background:#fff;
+    }
+
+    .p-card{
+      border:1px solid #e7e7e7;
+      border-radius:12px;
+      overflow:hidden;
+      cursor:pointer;
+      background:#fff;
+      transition:.15s;
+      min-height: 300px;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .p-card:hover{
+      box-shadow: 0 4px 14px rgba(0,0,0,.10);
+      transform: translateY(-1px);
+    }
+
+    .p-card.active{
+      border-color:#F9A825;
+      box-shadow: 0 0 0 3px rgba(249,168,37,.15);
+    }
+
+    .p-img{
+      width:100%;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      background:#f3f3f3;
+    }
+
+    .p-body{
+      padding:10px 10px 12px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      flex:1;
+    }
+
+    .p-name{
+  font-size:12px;
+  font-weight:700;
+  line-height:1.25;
+  min-height: 44px;
+  max-height: 44px;
+  overflow:hidden;
+  display:-webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+
+
+    .p-code{
+      font-size:10px;
+      color:#777;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .p-stock{
+      margin-top:auto;
+      display:flex;
+      justify-content:space-between;
+      font-size:10px;
+      color:#444;
+      padding-top:8px;
+      border-top:1px solid #f1f1f1;
+    }
+
+    /* =========================
+       RIGHT: DETAIL PANEL (lebih kecil)
+    ========================== */
+    .right{
+      width: 380px;
+      max-width: 420px;
+      background:#fff;
+      border:1px solid #eee;
+      border-radius:12px;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .right-head{
+  padding:10px 12px;
+  border-bottom:1px solid #eee;
+  background:#fafafa;
+  font-weight:900;
+  font-size:14px;
+}
+
+
+    .right-body{
+  padding:10px;
+  overflow:auto;
+  flex:1;
+}
+
+
+ .detail-img{
+  width:100%;
+  height: 155px;
+  object-fit: contain;
+  background:#ffffff;   /* PUTIH BERSIH */
+  border:1px solid #e5e5e5;
+  border-radius:10px;
+}
+
+
+
+
+.d-title{
+  margin:6px 0 1px;
+  font-size:11px;
+  font-weight:800;
+  line-height:1.2;
+}
+
+.d-code{
+  font-size:9px;
+  color:#777;
+  margin-bottom:4px;
+}
+
+    .kv{
+  display:grid;
+  grid-template-columns: 1fr auto;
+  gap:4px 8px;
+  padding:8px 10px;
+  border:1px solid #eee;
+  border-radius:10px;
+  margin-bottom:8px;
+  font-size:11px;
+}
+
+    .kv .k{ color:#666; }
+    .kv .v{ font-weight:800; text-align:right; }
+
+   .section-title{
+  font-size:11px;
+  font-weight:900;
+  margin:8px 0 4px;
+}
+
+
+
+    .price-box{
+      border:1px solid #eee;
+      border-radius:10px;
+      overflow:hidden;
+    }
+
+   .price-row{
+  display:flex;
+  justify-content:space-between;
+  gap:6px;
+  padding:7px 10px;
+  border-bottom:1px solid #f1f1f1;
+  font-size:11px;
+}
+
+
+    .price-row:last-child{ border-bottom:none; }
+    .price-row .l{ color:#444; }
+    .price-row .r{ font-weight:900; white-space:nowrap; }
+
+  .note{
+  margin-top:6px;
+  font-size:10px;
+  color:#777;
+}
+
+
+    .empty{
+      color:#999;
+      padding:10px;
+      text-align:center;
+    }
+  </style>
+</head>
+
+<body>
+<header>🔍 Cek Harga Produk – Tasaji</header>
+
+<main>
+  <div class="wrap">
+
+    <!-- LEFT -->
+    <section class="left">
+
+  <div class="toolbar">
+    <div class="search">
+      <span style="font-size:16px;">🔎</span>
+      <input
+        id="searchInput"
+        placeholder="Cari nama / kode / barcode"
+      />
+    </div>
+  </div>
+
+  <div class="meta-small" id="metaInfo">
+    Memuat produk...
+  </div>
+
+  <div id="productGrid" class="grid"></div>
+<div style="
+  padding:10px 12px;
+  border-top:1px solid #eee;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:12px;
+  background:#fafafa;
+">
+  <button id="btnPrev" onclick="prevPage()">◀ Prev</button>
+  <span id="pageInfo">Halaman 1</span>
+  <button id="btnNext" onclick="nextPage()">Next ▶</button>
+</div>
+
+</section>
+
+
+    <!-- RIGHT -->
+    <aside class="right">
+      <div class="right-head">Rincian Produk</div>
+      <div class="right-body" id="detailBox">
+        <div class="empty">Klik salah satu produk di kiri</div>
+      </div>
+    </aside>
+
+  </div>
+</main>
+
+<script>
+/* =============================
+   SUPABASE (READ ONLY)
+============================= */
+const supabase = window.supabase.createClient(
+  "https://fpjfdxpdaqtopjorqood.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwamZkeHBkYXF0b3Bqb3Jxb29kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NjU2NDUsImV4cCI6MjA3NjU0MTY0NX0.7cSIF32p9SHaHHlUcMFrrQSq7JBOdP4LneEvcMRrtXU"
+);
+
+/* =============================
+   DOM
+============================= */
+const productGrid = document.getElementById("productGrid");
+const searchInput = document.getElementById("searchInput");
+const detailBox = document.getElementById("detailBox");
+const metaInfo = document.getElementById("metaInfo");
+
+/* =============================
+   STATE
+============================= */
+let PRODUCTS = [];      // full
+let VIEW = [];          // filtered
+let PRICE_MAP = {};     // { item_code: { kategori: harga } }
+let PACKING_MAP = {};   // { item_code: pcs_per_karton }
+let ACTIVE_CODE = null;
+let PAGE = 1;
+const PAGE_SIZE = 25;
+
+/* =============================
+   UTIL
+============================= */
+function formatRupiah(n){
+  return "Rp " + Number(n||0).toLocaleString("id-ID");
+}
+function safeStr(s){ return String(s||""); }
+function escHtml(s){
+  return safeStr(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+
+/* =============================
+   HARGA (VERSI Cek Harga)
+   - Umum    : qty 1
+   - Reseller: qty 2
+   - Agen    : qty 3
+   - Karton  : qty pcs_per_karton (kalau ada)
+============================= */
+function resolvePriceCategory(itemCode, qty) {
+  const pcsPerKarton = PACKING_MAP[itemCode] || Infinity;
+
+  if (qty >= pcsPerKarton) return "lv1_pcs";
+  if (qty >= 3) return "agen";
+  if (qty >= 2) return "reseller";
+  return "umum";
+}
+
+function getFinalPrice(itemCode, qty) {
+  const kategori = resolvePriceCategory(itemCode, qty);
+  const harga = PRICE_MAP[itemCode]?.[kategori];
+  if (!harga) return PRICE_MAP[itemCode]?.["umum"] || 0;
+  return harga;
+}
+
+/* =============================
+   LOAD ALL MASTER ITEMS (batch)
+============================= */
+async function loadMasterData(){
+  const { data: items } = await supabase
+    .from("master_items")
+    .select("item_code,item_name,thumbnail,barcode,available_qty")
+    .order("item_name");
+
+  PRODUCTS = (items || []).filter(p => {
+    const name = (p.item_name || "").toLowerCase();
+    const code = (p.item_code || "").toLowerCase();
+
+    if (name.includes("ktn") || code.includes("ktn")) return false;
+    if (name.includes("karton")) return false;
+
+    return true;
+  });
+
+  VIEW = PRODUCTS;
+  metaInfo.textContent = `Total produk: ${PRODUCTS.length.toLocaleString("id-ID")} • Ketik untuk filter`;
+  renderProducts(VIEW);
+}
+searchInput.addEventListener("input", () => {
+PAGE = 1;
+  const q = searchInput.value.toLowerCase();
+
+VIEW = PRODUCTS.filter(p =>
+  p.item_name.toLowerCase().includes(q) ||
+  p.item_code.toLowerCase().includes(q) ||
+  (p.barcode || "").toLowerCase().includes(q)
+);
+
+
+  renderProducts(VIEW);
+});
+
+
+async function loadPriceMap(){
+  const { data, error } = await supabase
+    .from("product_prices")
+    .select("item_code,kategori_harga,harga");
+
+  if(error){
+    console.error("load product_prices error:", error);
+    return;
+  }
+
+  PRICE_MAP = {};
+  (data || []).forEach(r => {
+    if(!PRICE_MAP[r.item_code]) PRICE_MAP[r.item_code] = {};
+    PRICE_MAP[r.item_code][r.kategori_harga] = r.harga;
+  });
+}
+
+async function loadPackingMap(){
+  const { data, error } = await supabase
+    .from("product_packing")
+    .select("item_code,pcs_per_karton");
+
+  if(error){
+    console.error("load product_packing error:", error);
+    return;
+  }
+
+  PACKING_MAP = {};
+  (data || []).forEach(r => {
+    PACKING_MAP[r.item_code] = r.pcs_per_karton;
+  });
+}
+
+
+/* =============================
+   RENDER GRID
+============================= */
+function renderProducts(list){
+  productGrid.innerHTML = "";
+
+  if(!list.length){
+    productGrid.innerHTML = `<div class="empty">Produk tidak ditemukan</div>`;
+    updatePaginationInfo(0);
+    return;
+  }
+
+  const totalPages = Math.ceil(list.length / PAGE_SIZE);
+  if (PAGE > totalPages) PAGE = totalPages || 1;
+
+  const start = (PAGE - 1) * PAGE_SIZE;
+  const end   = start + PAGE_SIZE;
+  const pageItems = list.slice(start, end);
+
+  pageItems.forEach(p => {
+    const code = p.item_code;
+    const card = document.createElement("div");
+    card.className = "p-card" + (code === ACTIVE_CODE ? " active" : "");
+    card.onclick = () => selectProduct(code);
+
+    const img = p.thumbnail || "";
+    const stock = Number(p.available_qty || 0);
+
+    card.innerHTML = `
+      <img class="p-img" src="${img}" onerror="this.src=''; this.style.background='#f3f3f3';" />
+      <div class="p-body">
+        <div class="p-name">${escHtml(p.item_name)}</div>
+        <div class="p-code">${escHtml(code)}</div>
+        <div class="p-stock">
+          <span>Stok</span>
+          <b>${stock.toLocaleString("id-ID")}</b>
+        </div>
+      </div>
+    `;
+    productGrid.appendChild(card);
+  });
+
+  updatePaginationInfo(totalPages);
+}
+function updatePaginationInfo(totalPages){
+  const info = document.getElementById("pageInfo");
+  const btnPrev = document.getElementById("btnPrev");
+  const btnNext = document.getElementById("btnNext");
+
+  if(!info) return;
+
+  info.textContent = `Halaman ${PAGE} dari ${totalPages || 1}`;
+  btnPrev.disabled = PAGE <= 1;
+  btnNext.disabled = PAGE >= totalPages;
+}
+
+function nextPage(){
+  PAGE++;
+  renderProducts(VIEW);
+}
+
+function prevPage(){
+  PAGE--;
+  renderProducts(VIEW);
+}
+
+/* =============================
+   SELECT + DETAIL
+============================= */
+function selectProduct(code){
+  ACTIVE_CODE = code;
+
+  // re-render kiri biar highlight aktif
+  renderProducts(VIEW);
+
+  const p = PRODUCTS.find(x => x.item_code === code);
+  if(!p) return;
+
+  const name = p.item_name || "-";
+  const img = p.thumbnail || "";
+  const stockPcs = Number(p.available_qty || 0);
+
+  const pcsPerKarton = Number(PACKING_MAP[code] || 0);
+  const hasKarton = pcsPerKarton > 0;
+
+  const stockKarton = hasKarton ? Math.floor(stockPcs / pcsPerKarton) : null;
+
+  const hUmum = getFinalPrice(code, 1);
+  const hMember = PRICE_MAP[code]?.["member"] || null;
+  const hRes  = getFinalPrice(code, 2);
+  const hAgen = getFinalPrice(code, 3);
+  const hKart = getFinalPrice(code, hasKarton ? pcsPerKarton : 999999999);
+const totalKarton = hasKarton ? hKart * pcsPerKarton : null;
+
+  detailBox.innerHTML = `
+    <img class="detail-img" src="${img}" onerror="this.src=''; this.style.background='#f3f3f3';" />
+
+    <div class="d-title">${escHtml(name)}</div>
+    <div class="d-code">Kode: <b>${escHtml(code)}</b></div>
+
+    <div class="kv">
+      <div class="k">Stok (pcs)</div>
+      <div class="v">${stockPcs.toLocaleString("id-ID")}</div>
+
+      <div class="k">Isi per karton</div>
+      <div class="v">${hasKarton ? pcsPerKarton.toLocaleString("id-ID") : "-"}</div>
+
+      <div class="k">Stok (karton)</div>
+      <div class="v">${hasKarton ? stockKarton.toLocaleString("id-ID") : "-"}</div>
+    </div>
+
+    <div class="section-title">Rincian Harga</div>
+
+    <div class="price-box">
+      <div class="price-row">
+        <div class="l">Harga Umum</div>
+        <div class="r">${formatRupiah(hUmum)}</div>
+      </div>
+	  <div class="price-row">
+  <div class="l">Harga Member</div>
+  <div class="r">${hMember ? formatRupiah(hMember) : "-"}</div>
+</div>
+
+      <div class="price-row">
+        <div class="l">Harga Reseller <span style="color:#888;font-weight:400;">(min 2 pcs)</span></div>
+        <div class="r">${formatRupiah(hRes)}</div>
+      </div>
+      <div class="price-row">
+        <div class="l">Harga Agen <span style="color:#888;font-weight:400;">(min 3 pcs)</span></div>
+        <div class="r">${formatRupiah(hAgen)}</div>
+      </div>
+      <div class="price-row">
+        <<div class="l">Harga Karton / pcs <span style="color:#888;font-weight:400;">(${hasKarton ? "isi " + pcsPerKarton : "isi belum diset"})</span></div>
+        <div class="r">${formatRupiah(hKart)}</div>
+      </div>
+	  <div class="price-row">
+  <div class="l">Total 1 Karton</div>
+  <div class="r">
+    ${hasKarton ? formatRupiah(totalKarton) : "-"}
+  </div>
+</div>
+
+    </div>
+
+    <div class="note">
+      Harga mengikuti sistem Tasaji (otomatis).
+    </div>
+  `;
+}
+
+/* =============================
+   INIT
+============================= */
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadPriceMap();
+  await loadPackingMap();
+  await loadMasterData();
+});
+
+</script>
+
+</body>
+</html>

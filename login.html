@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Login POS Tasaji Food</title>
+<link rel="icon" type="image/png" href="favicon.png?v=2">
+<link rel="shortcut icon" href="favicon.png?v=2">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .login-box {
+    background: #ffffff;
+    width: 360px;
+    padding: 28px;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+
+  h2 {
+    margin: 0 0 20px;
+    text-align: center;
+    font-size: 22px;
+    font-weight: bold;
+  }
+
+  input {
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    margin-bottom: 14px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: #ff9800;
+  }
+
+  button {
+    width: 100%;
+    height: 44px;
+    background: #ff9800;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #e68900;
+  }
+
+  .error {
+    margin-top: 12px;
+    text-align: center;
+    color: red;
+    font-size: 13px;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="login-box">
+  <h3 style="text-align:center">Login POS</h3>
+
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+
+  <button onclick="login()">Login</button>
+
+  <div id="error" style="color:red;margin-top:10px;"></div>
+</div>
+
+<script>
+const supabase = window.supabase.createClient(
+  "https://fpjfdxpdaqtopjorqood.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwamZkeHBkYXF0b3Bqb3Jxb29kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NjU2NDUsImV4cCI6MjA3NjU0MTY0NX0.7cSIF32p9SHaHHlUcMFrrQSq7JBOdP4LneEvcMRrtXU"
+);
+
+async function login(){
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
+
+  if(!username || !password){
+    document.getElementById("error").textContent = "Lengkapi data login";
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("pos_users")
+    .select("id,username,name,role")
+    .eq("username", username)
+    .eq("password", password)
+    .eq("is_active", true)
+    .single();
+
+  if(error || !data){
+    document.getElementById("error").textContent = "Username / Password salah";
+    return;
+  }
+
+  // SIMPAN LOGIN
+  localStorage.setItem("pos_user", JSON.stringify(data));
+  localStorage.setItem("pos_cashier_id", data.username);
+  localStorage.setItem("pos_cashier_name", data.name);
+
+  window.location.href = "/";
+}
+</script>
+
+</body>
+</html>
+
+
