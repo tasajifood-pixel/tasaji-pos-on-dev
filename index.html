@@ -155,11 +155,37 @@ function logout() {
 ================================================== -->
 <section class="product-panel" id="panel-product">
   <div class="product-toolbar">
-    <div class="search-input">
-      <input id="searchInput" placeholder="Cari nama / kode / barcode">
-    </div>
-    <button class="btn btn-cari" id="btnCari">Cari</button>
+  <div class="search-input">
+    <input id="searchInput" placeholder="Cari nama / kode / barcode">
   </div>
+
+  <button class="btn btn-cari" id="btnCari">Cari</button>
+
+</div>
+
+
+<!-- SORT PRODUK -->
+<!-- SORT PRODUK -->
+<div class="product-sort" id="productSort">
+
+  <div class="sort-main">
+    <button class="sort-btn active" data-sort="best">🔥 Terlaris</button>
+    <button class="sort-btn" data-sort="latest">🕒 Terbaru</button>
+    <button class="sort-btn" data-sort="az">A–Z</button>
+  </div>
+
+  <!-- PERIODE TERLARIS (muncul hanya saat pilih Terlaris) -->
+  <div class="sort-period" id="bestPeriodBox">
+    <button class="period-btn active" data-period="7d">7 Hari</button>
+    <button class="period-btn" data-period="30d">30 Hari</button>
+    <button class="period-btn" data-period="90d">90 Hari</button>
+    <button class="period-btn" data-period="180d">6 Bulan</button>
+    <button class="period-btn" data-period="365d">1 Tahun</button>
+  </div>
+
+</div>
+
+
 
   <div id="productGrid" class="product-grid"></div>
 
@@ -255,6 +281,23 @@ function logout() {
           <div class="search-input">
             <input id="txnSearchInput" placeholder="Cari No Order / Nama / Telepon">
           </div>
+		  <!-- FILTER TRANSAKSI (mirip laporan) -->
+<div class="txn-filter" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+  <div style="font-size:12px; font-weight:700; color:#333;">Tanggal</div>
+
+  <input type="date" id="txnDateFrom" style="width:150px;" />
+  <span style="font-weight:700;">–</span>
+  <input type="date" id="txnDateTo" style="width:150px;" />
+
+  <button class="btn-outline" type="button" onclick="txnSetToday()">Hari Ini</button>
+  <button class="btn-outline" type="button" onclick="txnSetYesterday()">Kemarin</button>
+
+  <select id="txnCashierFilter" style="width:220px;">
+    <option value="ALL">Semua Kasir</option>
+    <option value="ACTIVE">Kasir Aktif Saja</option>
+  </select>
+</div>
+
           <button class="btn btn-cari" onclick="loadTransactions(true)">Cari</button>
           <button class="btn" onclick="loadTransactions(true)" title="Refresh">↻</button>
         </div>
@@ -591,10 +634,11 @@ function logout() {
    SUPABASE
 ===================================================== */
 // ===== CONFIG =====
-const supabase = window.supabase.createClient(
+const sb = window.supabase.createClient(
   "https://fpjfdxpdaqtopjorqood.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwamZkeHBkYXF0b3Bqb3Jxb29kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NjU2NDUsImV4cCI6MjA3NjU0MTY0NX0.7cSIF32p9SHaHHlUcMFrrQSq7JBOdP4LneEvcMRrtXU"
 );
+	
 
 /* =====================================================
    DOM REFS
@@ -673,6 +717,14 @@ if (customerInput) {
    STATE
 ===================================================== */
 // ===== STATE =====
+let PRODUCT_SORT_MODE =
+  localStorage.getItem("product_sort_mode") || "best"; // best | latest | az
+
+let PRODUCT_VIEW_MODE =
+  localStorage.getItem("setting_product_view") || "normal";
+
+let BEST_SELLER_PERIOD = "90d"; // default 90 hari
+
 let page = 1;
 const pageSize = 25;
 let currentQuery = "";
@@ -840,7 +892,7 @@ async function syncAllProductsToCache(){
     const size = 1000;
 
     while(true){
-      const { data, error } = await supabase
+      const { data, error } = await sb
         .from("master_items")
         .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty")
         .order("item_name", { ascending:true })
@@ -1177,7 +1229,7 @@ document.addEventListener("click", (e) => {
 async function findProductByBarcode(barcode) {
   if (!barcode) return null;
 
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from("master_items")
     .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty")
     .eq("barcode", barcode)
@@ -1404,12 +1456,13 @@ function switchLeftTab(key){
     panelProduct.style.display = "flex";
     if (cartPanel) cartPanel.style.display = "flex";
   }
+if (key === "txn") {
+  panelTransactions.style.display = "flex";
+  if (cartPanel) cartPanel.style.display = "none";
+  initTxnFilterUI();
+  loadTransactions(true);
+}
 
-  if (key === "txn") {
-    panelTransactions.style.display = "flex";
-    if (cartPanel) cartPanel.style.display = "none";
-    loadTransactions(true);
-  }
 
   if (key === "set") {
   panelSettings.style.display = "flex";
@@ -1429,6 +1482,8 @@ if (key === "report") {
    LOAD PRODUCTS
 ===================================================== */
 async function loadProducts() {
+  // default sort
+  let sortMode = PRODUCT_SORT_MODE || localStorage.getItem("product_sort_mode") || "az";
 
   // ==========================
   // OFFLINE MODE → LOAD CACHE
@@ -1460,6 +1515,17 @@ async function loadProducts() {
 
     if (filters.hideEmpty) list = list.filter(p => p.available_qty > 0);
     if (filters.hideKtn) list = list.filter(p => !/ktn/i.test(p.item_name || ""));
+// ==========================
+// APPLY SORT (OFFLINE)
+// ==========================
+if (sortMode === "az") {
+  list.sort((a,b)=> String(a.item_name||"").localeCompare(String(b.item_name||""), "id"));
+} else if (sortMode === "latest") {
+  list.sort((a,b)=> Number(b.item_id||0) - Number(a.item_id||0));
+} else if (sortMode === "best") {
+  // offline tidak bisa ambil rank dari server, fallback A-Z
+  list.sort((a,b)=> String(a.item_name||"").localeCompare(String(b.item_name||""), "id"));
+}
 
     // hitung pagination lokal (offline)
 const total = list.length;
@@ -1479,21 +1545,81 @@ return;
   // ==========================
   // ONLINE MODE → SUPABASE
   // ==========================
-  let q = supabase
-    .from("master_items")
-    .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty",{ count:"exact" })
-    .order("item_name",{ascending:true});
+  let q = sb
+  .from("master_items")
+  .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty",{ count:"exact" });
 
   if (currentQuery) {
     q = q.or(`item_name.ilike.%${currentQuery}%,item_code.ilike.%${currentQuery}%,barcode.ilike.%${currentQuery}%`);
   }
   if (filters.hideEmpty) q = q.gt("available_qty",0);
   if (filters.hideKtn) q = q.not("item_name","ilike","%ktn%");
+  // ==========================
+  // APPLY SORT (ONLINE)
+  // ==========================
+  if (sortMode === "az") {
+    q = q.order("item_name", { ascending: true });
+  } else if (sortMode === "latest") {
+    // kalau tidak punya kolom updated_at, pakai item_id sebagai pendekatan "terbaru"
+    q = q.order("item_id", { ascending: false });
+  } else {
+    // "best" ditangani setelah data diambil (sort manual pakai rankMap)
+    // agar aman tanpa FK join
+    q = q.order("item_name", { ascending: true }); // fallback biar stabil
+  }
 
   const from = (page-1)*pageSize;
   const to = from + pageSize - 1;
 
+   // ==========================
+  // BEST SELLER: sort manual
+  // ==========================
+  if (sortMode === "best") {
+    const rankMap = await loadBestSellerMap();
+
+    // Ambil "lebih banyak" dulu, baru sort, lalu slice untuk page
+    // (Karena kalau kita range dulu, sorting rank-nya jadi salah)
+    const { data: allData, error: e1 } = await q;
+
+
+    if (e1) { console.error("loadProducts error", e1); return; }
+
+    const list = (allData || []).slice();
+
+    list.sort((a,b)=>{
+  const ra = rankMap[a.item_code];
+  const rb = rankMap[b.item_code];
+
+  if (ra == null && rb == null) return 0;
+  if (ra == null) return 1;   // yang bukan best seller selalu di bawah
+  if (rb == null) return -1;
+
+  return ra - rb;
+});
+
+
+    const total = list.length;
+
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    if (page > pages) page = pages;
+
+    const start = (page - 1) * pageSize;
+    const slice = list.slice(start, start + pageSize);
+
+    renderProducts(slice);
+    updatePagination(total);
+    return;
+  }
+
+  // ==========================
+  // NON-BEST: normal range
+  // ==========================
   const { data, count, error } = await q.range(from,to);
+  if (error) { console.error("loadProducts error", error); return; }
+
+  renderProducts(data||[]);
+  updatePagination(count||0);
+
   if (error) {
     console.error("loadProducts error", error);
     return;
@@ -1512,7 +1638,7 @@ async function loadPriceMap() {
     return;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from("product_prices")
     .select("item_code, kategori_harga, harga");
 
@@ -1546,7 +1672,7 @@ async function loadPackingMap() {
     return;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from("product_packing")
     .select("item_code, pcs_per_karton");
 
@@ -1664,7 +1790,7 @@ if(!isOnline() || !supabaseOK){
     const size = 1000;
 
     while (true) {
-      const { data, error } = await supabase
+      const { data, error } = await sb
         .from("customers")
         .select("contact_id,contact_name,phone,category_id,category_display")
         .range(from, from + size - 1);
@@ -1687,6 +1813,31 @@ if(!isOnline() || !supabaseOK){
     CUSTOMER_LIST = loadCustomerCache();
   }
 }
+// ==========================
+// BEST SELLER MAP (90 HARI)
+// ==========================
+async function loadBestSellerMap() {
+  if (!isOnline()) return {};
+
+  const { data, error } = await sb
+  .from("product_best_sellers")       // ✅ BENAR
+  .select("item_code, rank_no")
+  .eq("period_key", BEST_SELLER_PERIOD || "90d");
+
+
+  if (error) {
+    console.error("loadBestSellerMap error", error);
+    return {};
+  }
+
+  const map = {};
+  (data || []).forEach(r => {
+    map[r.item_code] = r.rank_no;
+  });
+
+  return map;
+}
+
 
 
 /* =====================================================
@@ -1713,13 +1864,9 @@ else if (outOfStock && !requireStock) extraClass = " oos";
 
 card.className = "product-card" + extraClass;
 
-// klik hanya kalau:
-// - stok ada, atau
-// - stok 0 tapi requireStock OFF
 if (!outOfStock || !requireStock) {
   card.onclick = () => addToCart(p);
 }
-
 
 
     card.innerHTML=`
@@ -1734,9 +1881,13 @@ if (!outOfStock || !requireStock) {
 
         <div class="product-stock">Stok ${p.available_qty}</div>
       </div>`;
-    productGrid.appendChild(card);
+        productGrid.appendChild(card);
   });
+
+  // ✅ apply short / normal SETELAH render selesai
+  applyProductViewMode();
 }
+
 
 /* =====================================================
    CART LOGIC
@@ -1955,6 +2106,7 @@ function selectCustomer(contactId) {
 /* =====================================================
    PAGINATION & EVENT
 ===================================================== */
+
 function updatePagination(total){
   const pages=Math.max(1,Math.ceil(total/pageSize));
   pageInfo.textContent=`Hal ${page}/${pages}`;
@@ -2351,7 +2503,7 @@ function backToEdit() {
 }
 
 async function saveJubelioPayloadToOrder(salesorderNo, payloadObj){
-  const { error } = await supabase
+  const { error } = await sb
     .from("pos_sales_orders")
     .update({
       jubelio_payload: payloadObj,
@@ -2371,7 +2523,7 @@ async function txnSyncJubelio(){
 
   const orderNo = TXN_SELECTED.salesorder_no;
 
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from("pos_sales_orders")
     .select("jubelio_payload,jubelio_synced,jubelio_error")
     .eq("salesorder_no", orderNo)
@@ -2388,7 +2540,7 @@ async function txnSyncJubelio(){
   }
 
   // tandai ulang untuk retry sync
-  const { error: e2 } = await supabase
+  const { error: e2 } = await sb
     .from("pos_sales_orders")
     .update({
       jubelio_synced: false,
@@ -2416,7 +2568,7 @@ async function generateSalesOrderNo() {
     String(today.getHours()).padStart(2, "0") +
     String(today.getMinutes()).padStart(2, "0");
 
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .rpc("get_next_daily_order_number", { p_date: dateForDb });
 
   if (error) {
@@ -2495,7 +2647,7 @@ async function hydrateCartItemIds(){
     const code = item.itemCode || item.code;
     if (!code) continue;
 
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from("master_items")
       .select("item_id")
       .eq("item_code", code)
@@ -2544,7 +2696,7 @@ jubelio_error: null,
 jubelio_payload: null
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await sb
     .from("pos_sales_orders")
     .insert([payload])
     .select()
@@ -2586,7 +2738,7 @@ async function saveSalesOrderItems(salesorderNo) {
 
 
 
-  const { error } = await supabase
+  const { error } = await sb
     .from("pos_sales_order_items")
     .insert(itemsPayload);
 
@@ -2605,7 +2757,7 @@ async function saveSalesOrderPayments(salesorderNo) {
     amount: p.amount
   }));
 
-  const { error } = await supabase
+  const { error } = await sb
     .from("pos_sales_order_payments")
     .insert(paymentsPayload);
 
@@ -2741,6 +2893,80 @@ window.addEventListener("afterprint", () => {
   const m = document.getElementById("receiptModal");
   if (m) m.style.display = "none";
 });
+function txnSetToday(){
+  const fromEl = document.getElementById("txnDateFrom");
+  const toEl   = document.getElementById("txnDateTo");
+  if(!fromEl || !toEl) return;
+
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+
+  fromEl.value = todayStr;
+  toEl.value   = todayStr;
+
+  fromEl.dispatchEvent(new Event("change", { bubbles:true }));
+}
+
+function txnSetYesterday(){
+  const fromEl = document.getElementById("txnDateFrom");
+  const toEl   = document.getElementById("txnDateTo");
+  if(!fromEl || !toEl) return;
+
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  const yStr = `${yyyy}-${mm}-${dd}`;
+
+  fromEl.value = yStr;
+  toEl.value   = yStr;
+
+  fromEl.dispatchEvent(new Event("change", { bubbles:true }));
+}
+
+let TXN_FILTER_BOUND = false;
+
+function initTxnFilterUI(){
+  const fromEl   = document.getElementById("txnDateFrom");
+  const toEl     = document.getElementById("txnDateTo");
+  const filterEl = document.getElementById("txnCashierFilter");
+
+  if(!fromEl || !toEl || !filterEl) return;
+
+  // default: hari ini
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth()+1).padStart(2,"0");
+  const dd = String(today.getDate()).padStart(2,"0");
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+
+  if (!fromEl.value) fromEl.value = todayStr;
+  if (!toEl.value)   toEl.value   = todayStr;
+
+  // default: kasir aktif saja (ingat pilihan)
+const saved = localStorage.getItem("txn_cashier_filter"); // "ALL" | "ACTIVE"
+filterEl.value = saved || "ACTIVE";
+if (!saved) localStorage.setItem("txn_cashier_filter", filterEl.value);
+
+
+
+  if(!TXN_FILTER_BOUND){
+    TXN_FILTER_BOUND = true;
+
+    fromEl.addEventListener("change", () => loadTransactions(true));
+    toEl.addEventListener("change", () => loadTransactions(true));
+    filterEl.addEventListener("change", () => {
+  localStorage.setItem("txn_cashier_filter", filterEl.value);
+  loadTransactions(true);
+});
+
+  }
+}
 
 /* =====================================================
    TRANSAKSI: LIST + DETAIL + REPRINT + REORDER
@@ -2781,7 +3007,7 @@ async function syncOfflineOrdersToServer(){
         jubelio_synced: false
       };
 
-      const { error: hErr } = await supabase
+      const { error: hErr } = await sb
         .from("pos_sales_orders")
         .insert([headerPayload]);
 
@@ -2799,7 +3025,7 @@ async function syncOfflineOrdersToServer(){
         location_id: -1
       }));
 
-      const { error: iErr } = await supabase
+      const { error: iErr } = await sb
         .from("pos_sales_order_items")
         .insert(itemsPayload);
 
@@ -2812,7 +3038,7 @@ async function syncOfflineOrdersToServer(){
         amount: p.amount
       }));
 
-      const { error: pErr } = await supabase
+      const { error: pErr } = await sb
         .from("pos_sales_order_payments")
         .insert(payPayload);
 
@@ -2871,10 +3097,32 @@ function txnNextPage(){
   loadTransactions(false);
 }
 
+
 // ==========================
 // OFFLINE MODE → LOCAL ONLY
 // ==========================
 async function loadTransactions(resetPage){
+// ===== FILTER TANGGAL TRANSAKSI =====
+const fromVal = document.getElementById("txnDateFrom")?.value || "";
+const toVal   = document.getElementById("txnDateTo")?.value || "";
+
+let startISO = null;
+let endISO   = null;
+
+if (fromVal && toVal) {
+  const start = new Date(fromVal + "T00:00:00");
+  const end   = new Date(toVal   + "T23:59:59");
+  startISO = start.toISOString();
+  endISO   = end.toISOString();
+}
+// ===== FILTER KASIR TRANSAKSI =====
+const cashierFilter =
+  document.getElementById("txnCashierFilter")?.value
+  || localStorage.getItem("txn_cashier_filter")
+  || "ACTIVE";
+
+const activeCashierId =
+  CASHIER_ID || localStorage.getItem("pos_cashier_id") || null;
   if (resetPage) TXN_PAGE = 1;
   // ✅ kalau terlihat online tapi server nggak bisa dijangkau → anggap OFFLINE
   const supabaseOK = await canReachSupabase();
@@ -2905,7 +3153,25 @@ async function loadTransactions(resetPage){
     const kw = ((txnSearchInput?.value || "").trim()).toLowerCase();
 
     let list = loadOfflineTransactions()
-      .filter(x => !CASHIER_ID || x.cashier_id === CASHIER_ID);
+  .filter(x => {
+    // filter tanggal
+    if (startISO && endISO) {
+      const t = new Date(x.created_at || 0).getTime();
+      if (
+        t < new Date(startISO).getTime() ||
+        t > new Date(endISO).getTime()
+      ) return false;
+    }
+
+    // filter kasir
+    if (cashierFilter === "ACTIVE" && activeCashierId) {
+      return x.cashier_id === activeCashierId;
+    }
+
+    return true; // ALL kasir
+  });
+
+
 
     if (kw) {
       list = list.filter(x => {
@@ -2928,13 +3194,19 @@ async function loadTransactions(resetPage){
   const from = (TXN_PAGE-1) * TXN_PAGE_SIZE;
   const to = from + TXN_PAGE_SIZE - 1;
 
-  let q = supabase
+  let q = sb
     .from("pos_sales_orders")
     .select("salesorder_no,transaction_date,customer_name,shipping_phone,grand_total,is_paid", { count:"exact" })
     .order("transaction_date", { ascending:false });
-
-  // filter kasir aktif
-  if (CASHIER_ID) q = q.eq("cashier_id", CASHIER_ID);
+	// filter tanggal (from - to)
+if (startISO && endISO) {
+  q = q.gte("transaction_date", startISO)
+       .lte("transaction_date", endISO);
+}
+// filter kasir
+if (cashierFilter === "ACTIVE" && activeCashierId) {
+  q = q.eq("cashier_id", activeCashierId);
+}
 
   // search
   if (keyword) {
@@ -3128,7 +3400,7 @@ async function selectTransaction(orderNo){
   txnDetailBadge.innerHTML = "";
 
   // header
-  const { data: header, error: e1 } = await supabase
+  const { data: header, error: e1 } = await sb
     .from("pos_sales_orders")
     .select("*")
     .eq("salesorder_no", orderNo)
@@ -3142,7 +3414,7 @@ async function selectTransaction(orderNo){
   }
 
   // items
-  const { data: items, error: e2 } = await supabase
+  const { data: items, error: e2 } = await sb
     .from("pos_sales_order_items")
     .select("item_id,item_code,description,qty_in_base,price,amount")
     .eq("salesorder_no", orderNo)
@@ -3151,7 +3423,7 @@ async function selectTransaction(orderNo){
   if (e2) console.error("❌ load items", e2);
 
   // payments
-  const { data: pays, error: e3 } = await supabase
+  const { data: pays, error: e3 } = await sb
     .from("pos_sales_order_payments")
     .select("payment_method,amount")
     .eq("salesorder_no", orderNo);
@@ -3293,6 +3565,96 @@ cart = items.map(i => ({
   panelProduct.style.display = "flex";
   btnNext.style.display = "block";
 }
+function applyProductViewMode(){
+  const grid = document.getElementById("productGrid");
+  const btn  = document.getElementById("btnShort");
+  if(!grid || !btn) return;
+
+  const isShort = PRODUCT_VIEW_MODE === "short";
+  grid.classList.toggle("short", isShort);
+  btn.classList.toggle("active", isShort);
+}
+
+function toggleProductShortMode(){
+  PRODUCT_VIEW_MODE =
+    (PRODUCT_VIEW_MODE === "short") ? "normal" : "short";
+
+  localStorage.setItem(
+    "setting_product_view",
+    PRODUCT_VIEW_MODE
+  );
+
+  applyProductViewMode();
+}
+function applySortUI(){
+  document.querySelectorAll(".sort-btn").forEach(btn => {
+    btn.classList.toggle(
+      "active",
+      btn.dataset.sort === PRODUCT_SORT_MODE
+    );
+  });
+}
+function applyBestPeriodUI(){
+  const box = document.getElementById("bestPeriodBox");
+  if (!box) return;
+
+  // tampil hanya saat mode "best"
+  box.style.display = (PRODUCT_SORT_MODE === "best") ? "flex" : "none";
+
+  // aktifkan tombol period yang sesuai
+  box.querySelectorAll(".period-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.period === BEST_SELLER_PERIOD);
+  });
+}
+
+function bindSortButtons(){
+  const btns = document.querySelectorAll(".sort-btn");
+  if (!btns.length) return;
+
+  btns.forEach(btn => {
+    btn.addEventListener("click", () => {
+
+      // set active UI
+      btns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      // simpan mode
+      PRODUCT_SORT_MODE = btn.dataset.sort;
+      localStorage.setItem("product_sort_mode", PRODUCT_SORT_MODE);
+applySortUI();
+applyBestPeriodUI();
+
+      // reset halaman & reload
+      page = 1;
+      loadProducts();
+    });
+  });
+}
+function bindBestPeriodButtons(){
+  const box = document.getElementById("bestPeriodBox");
+  if (!box) return;
+
+  const btns = box.querySelectorAll(".period-btn");
+  if (!btns.length) return;
+
+  btns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      // set aktif UI
+      btns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      // simpan period
+      BEST_SELLER_PERIOD = btn.dataset.period || "90d";
+
+      // (opsional) simpan ke localStorage biar inget
+      localStorage.setItem("best_seller_period", BEST_SELLER_PERIOD);
+
+      // reset halaman & reload
+      page = 1;
+      loadProducts();
+    });
+  });
+}
 
 /* =====================================================
    INIT
@@ -3312,6 +3674,25 @@ cart = items.map(i => ({
   loadSettings();
   loadFilterSettings();
   bindSettingsEvents();
+  const savedPeriod = localStorage.getItem("best_seller_period");
+if (savedPeriod) BEST_SELLER_PERIOD = savedPeriod;
+
+bindSortButtons();
+applySortUI();
+
+bindBestPeriodButtons();
+applyBestPeriodUI();
+
+
+    // ✅ SHORT MODE
+  const btnShort = document.getElementById("btnShort");
+  if (btnShort) {
+    btnShort.addEventListener("click", toggleProductShortMode);
+  }
+
+  // apply saat load
+  applyProductViewMode();
+
   updateSyncStatus(`Auto sync: tiap ${AUTO_SYNC_HOURS} jam`);
   initReportUI();
 
@@ -3833,7 +4214,7 @@ Object.entries(appliedObj).forEach(([k, amt]) => {
     // ====== ONLINE ======
     const supabaseOK = await canReachSupabase();
     if(isOnline() && supabaseOK){
-      let q = supabase
+      let q = sb
         .from("pos_sales_orders")
         .select("salesorder_no,grand_total,cashier_id,cashier_name,transaction_date")
         .gte("transaction_date", startISO)
@@ -3853,7 +4234,7 @@ Object.entries(appliedObj).forEach(([k, amt]) => {
         omzet += (orders || []).reduce((s,o)=> s + Number(o.grand_total||0), 0);
 
         if(orderNos.length){
-          const { data: pays, error: e2 } = await supabase
+          const { data: pays, error: e2 } = await sb
             .from("pos_sales_order_payments")
             .select("salesorder_no,payment_method,amount")
             .in("salesorder_no", orderNos);
@@ -3928,6 +4309,3 @@ Object.entries(appliedObj).forEach(([k, amt]) => {
 
 </body>
 </html>
-
-
-
