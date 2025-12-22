@@ -126,6 +126,8 @@ let CUSTOMER_LIST = [];
 let ACTIVE_CUSTOMER = null;
 let PRICE_MAP = {};
 let PACKING_MAP = {};
+let STOCK_MAP = {}; // item_id -> stok_tersedia (dari decision.v_inventory_ui)
+
 let CURRENT_SALESORDER_NO = null;
 let CURRENT_LOCAL_ORDER_NO = null;     // ✅ nomor offline (local)
 let CURRENT_ORDER_MODE = "online";     // "online" | "offline"
@@ -174,6 +176,7 @@ async function manualSyncProducts(){
 
   updateSyncStatus("⏳ Sync produk...");
   await syncAllProductsToCache();
+	await loadStockMap();
   updateSyncStatus("✅ Sync selesai");
 }
 function updateSyncStatus(text){
@@ -214,6 +217,18 @@ function savePackingMapCache(map){
 }
 function loadPackingMapCache(){
   return loadJsonCache("pos_packing_map_v1", {}) || {};
+}
+function saveStockMapCache(map){
+  saveJsonCache("pos_stock_map_v1", map);
+  localStorage.setItem("pos_stock_map_ts", String(Date.now()));
+}
+function loadStockMapCache(){
+  return loadJsonCache("pos_stock_map_v1", {}) || {};
+}
+function getStockMapCacheAgeMs(){
+  const ts = Number(localStorage.getItem("pos_stock_map_ts") || 0);
+  if (!ts) return Infinity;
+  return Date.now() - ts;
 }
 
 function saveCustomerCache(list){
@@ -278,7 +293,7 @@ async function syncAllProductsToCache(){
     while(true){
       const { data, error } = await sb
         .from("master_items")
-        .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty")
+        .select("item_id,item_code,item_name,thumbnail,sell_price,barcode")
         .order("item_name", { ascending:true })
         .range(from, from + size - 1);
 
@@ -293,6 +308,9 @@ async function syncAllProductsToCache(){
     saveProductsCache(all);
     localStorage.setItem("pos_products_cache_ts", String(Date.now()));
     console.log("✅ Cached products:", all.length);
+	  // ✅ sync stok map juga (agar OFFLINE stok tetap benar)
+await loadStockMap();
+
   }catch(err){
     console.error("❌ syncAllProductsToCache error:", err);
   }
@@ -612,13 +630,16 @@ async function findProductByBarcode(barcode) {
 
   const { data, error } = await sb
     .from("master_items")
-    .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty")
+    .select("item_id,item_code,item_name,thumbnail,sell_price,barcode")
     .eq("barcode", barcode)
     .limit(1)
     .single();
 
   if (error || !data) return null;
-  if (data.available_qty <= 0 && filters.requireStock) return null;
+  const stok = Number(STOCK_MAP?.[data.item_id] ?? 0);
+data.stok_tersedia = stok; // tempel ke object biar konsisten dipakai bawah
+if (stok <= 0 && filters.requireStock) return null;
+
   return data;
 }
 
@@ -862,6 +883,41 @@ if (key === "report") {
 /* =====================================================
    LOAD PRODUCTS
 ===================================================== */
+async function loadStockMap(){
+  // OFFLINE → pakai cache
+  if(!isOnline()){
+    STOCK_MAP = loadStockMapCache();
+    return;
+  }
+
+  // ONLINE tapi supabase gak bisa dijangkau → fallback cache
+  const supabaseOK = await canReachSupabase();
+  if(!supabaseOK){
+    STOCK_MAP = loadStockMapCache();
+    return;
+  }
+
+  try{
+    const { data, error } = await sb
+      .schema("decision")
+      .from("v_inventory_ui")
+      .select("item_id, stok_tersedia");
+
+    if(error) throw error;
+
+    const map = {};
+    (data || []).forEach(r => {
+      map[r.item_id] = Number(r.stok_tersedia || 0);
+    });
+
+    STOCK_MAP = map;
+    saveStockMapCache(STOCK_MAP);
+  }catch(err){
+    console.error("❌ loadStockMap error:", err);
+    STOCK_MAP = loadStockMapCache();
+  }
+}
+
 async function loadProducts() {
   // default sort
   let sortMode = PRODUCT_SORT_MODE || localStorage.getItem("product_sort_mode") || "az";
@@ -884,6 +940,16 @@ async function loadProducts() {
 
     // filter manual (search, stok, ktn)
     let list = cached.slice();
+// pastikan STOCK_MAP terisi (offline pakai cache)
+if (!STOCK_MAP || Object.keys(STOCK_MAP).length === 0){
+  STOCK_MAP = loadStockMapCache();
+}
+
+// inject stok dari SSOT UI ke data produk
+list = list.map(p => ({
+  ...p,
+  stok_tersedia: Number(STOCK_MAP?.[p.item_id] ?? 0)
+}));
 
     if (currentQuery) {
       const q = currentQuery.toLowerCase();
@@ -894,7 +960,7 @@ async function loadProducts() {
       );
     }
 
-    if (filters.hideEmpty) list = list.filter(p => p.available_qty > 0);
+    if (filters.hideEmpty) list = list.filter(p => Number(p.stok_tersedia || 0) > 0);
     if (filters.hideKtn) list = list.filter(p => !/ktn/i.test(p.item_name || ""));
 // ==========================
 // APPLY SORT (OFFLINE)
@@ -928,12 +994,13 @@ return;
   // ==========================
   let q = sb
   .from("master_items")
-  .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty",{ count:"exact" });
+  .select("item_id,item_code,item_name,thumbnail,sell_price,barcode",{ count:"exact" });
+
 
   if (currentQuery) {
     q = q.or(`item_name.ilike.%${currentQuery}%,item_code.ilike.%${currentQuery}%,barcode.ilike.%${currentQuery}%`);
   }
-  if (filters.hideEmpty) q = q.gt("available_qty",0);
+
   if (filters.hideKtn) q = q.not("item_name","ilike","%ktn%");
   // ==========================
   // APPLY SORT (ONLINE)
@@ -966,6 +1033,16 @@ return;
     if (e1) { console.error("loadProducts error", e1); return; }
 
     const list = (allData || []).slice();
+	  await loadStockMap(); // pastikan STOCK_MAP fresh
+list.forEach(p => { p.stok_tersedia = Number(STOCK_MAP?.[p.item_id] ?? 0); });
+
+if (filters.hideEmpty) {
+  // hideEmpty pakai stok_tersedia SSOT UI
+  for (let i = list.length - 1; i >= 0; i--){
+    if (Number(list[i].stok_tersedia || 0) <= 0) list.splice(i,1);
+  }
+}
+
 
     list.sort((a,b)=>{
   const ra = rankMap[a.item_code];
@@ -997,6 +1074,19 @@ return;
   // ==========================
   const { data, count, error } = await q.range(from,to);
   if (error) { console.error("loadProducts error", error); return; }
+await loadStockMap();
+const list = (data || []).map(p => ({
+  ...p,
+  stok_tersedia: Number(STOCK_MAP?.[p.item_id] ?? 0)
+}));
+
+const finalList = filters.hideEmpty
+  ? list.filter(p => Number(p.stok_tersedia || 0) > 0)
+  : list;
+
+renderProducts(finalList);
+updatePagination(count||0);
+return;
 
   renderProducts(data||[]);
   updatePagination(count||0);
@@ -1233,7 +1323,9 @@ function renderProducts(list){
 
   list.forEach(p=>{
     const card=document.createElement("div");
-   const outOfStock = p.available_qty <= 0;
+   const qty = Number(p.stok_tersedia ?? p.available_qty ?? 0); // fallback terakhir (kalau ada)
+const outOfStock = qty <= 0;
+
 const requireStock = filters.requireStock;
 
 // class:
@@ -1260,7 +1352,7 @@ if (!outOfStock || !requireStock) {
   ${formatRupiah(getFinalPrice(p.item_code, 1))}
 </div>
 
-        <div class="product-stock">Stok ${p.available_qty}</div>
+        <div class="product-stock">Stok ${qty}</div>
       </div>`;
         productGrid.appendChild(card);
   });
@@ -3083,6 +3175,8 @@ applyBestPeriodUI();
   await loadPriceMap();
   await loadPackingMap();
   await loadCustomers();
+	await loadStockMap();
+
 if (isOnline()) {
   await syncAllProductsToCacheIfNeeded();
 }
