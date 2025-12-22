@@ -120,8 +120,9 @@ async function login(){
 
   // SIMPAN LOGIN
   localStorage.setItem("pos_user", JSON.stringify(data));
-  localStorage.setItem("pos_cashier_id", data.username);
-  localStorage.setItem("pos_cashier_name", data.name);
+  localStorage.setItem("pos_active_cashier_id", data.username);
+localStorage.setItem("pos_active_cashier_name", data.name);
+
 
   window.location.href = "/";
 }
@@ -129,6 +130,7 @@ async function login(){
 
 </body>
 </html>
+
 
 
 
