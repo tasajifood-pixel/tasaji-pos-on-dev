@@ -1921,7 +1921,7 @@ async function processPayment() {
     await hydrateCartItemIds();
 
     // ✅ 2. SIMPAN HEADER
-    const order = await saveSalesOrderHeader();
+    const order = await saveSalesOrder();
 
     // ✅ 3. SIMPAN ITEMS
     await saveSalesOrderItems(order.salesorder_no);
