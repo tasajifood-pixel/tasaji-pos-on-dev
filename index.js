@@ -49,12 +49,6 @@ const cartSubtotal = document.getElementById("cartSubtotal");
 const cartTotal = document.getElementById("cartTotal");
 const cartPanel = document.querySelector(".cart-panel");
 
-
-const panelProduct = document.getElementById("panel-product");
-const panelPayment = document.getElementById("panel-payment");
-const panelTransactions = document.getElementById("panel-transactions");
-const panelSettings = document.getElementById("panel-settings");
-
 const quickCash = document.getElementById("quickCash");
 
 const payItemCount = document.getElementById("payItemCount");
@@ -602,6 +596,7 @@ CURRENT_HOLD_ID = h.id; // ✅ tandai sedang buka hold ini
 
 if (panelProduct) panelProduct.style.display = "flex";
 if (btnNext) btnNext.style.display = "block";
+} // ← INI WAJIB (penutup resumeHold)
 
 
 function deleteHold(id){
@@ -3944,5 +3939,4 @@ Object.entries(appliedObj).forEach(([k, amt]) => {
   //  }
   }
 }
-
   
