@@ -1,187 +1,620 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <title>Tasaji POS</title>
 
-  <link rel="icon" type="image/png" href="favicon.png?v=2">
-  <link rel="shortcut icon" href="favicon.png?v=2">
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="./pos.css">
+<meta charset="UTF-8" />
+<title>Tasaji POS</title>
+<link rel="icon" type="image/png" href="favicon.png?v=2">
+<link rel="shortcut icon" href="favicon.png?v=2">
 
-  <!-- Supabase SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- =====================================================
+     SUPABASE SDK
+===================================================== -->
+
+<link rel="stylesheet" href="./pos.css">
 </head>
 
 <body>
+<!-- ===============================
+     WELCOME SCREEN (PILIH KASIR)
+================================ -->
+<div id="welcomeScreen" style="
+  position:fixed;
+  inset:0;
+  background:#f5f5f7;
+  z-index:99999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+">
+  <div style="
+    background:#fff;
+    padding:30px;
+    border-radius:16px;
+    width:360px;
+    max-width:90%;
+    text-align:center;
+    box-shadow:0 10px 30px rgba(0,0,0,.15);
+  ">
+    <h2 style="margin-top:0;">👋 Selamat Datang</h2>
+    <p style="color:#666;margin-bottom:20px;">
+      POS Tasaji Food<br>
+      Silakan pilih identitas Anda
+    </p>
+<button class="btn-cashier">
+  Rifqi — Kasir 01
+</button>
+
+<button class="btn-cashier">
+  Inan — Kasir 02
+</button>
+
+<button class="btn-cashier">
+  Imad — Kasir 03
+</button>
+
+<button class="btn-cashier">
+  Ahmad — Kasir 04
+</button>
+  </div>
+</div>
 
 <div class="pos-wrapper">
 
-  <!-- ================= HEADER ================= -->
-  <header class="pos-header">
-    <div class="pos-header-left">🧾 Tasaji POS</div>
-    <div class="pos-header-right">
-      <span id="cashierInfo" style="font-size:12px;color:#666;"></span>
-    </div>
-  </header>
+<header class="pos-header">
+  <div class="pos-header-left">🧾 Tasaji POS</div>
 
-  <!-- ================= MAIN ================= -->
-  <main class="pos-main">
+  <div class="pos-header-right">
+    <span id="cashierInfo" style="margin-right:10px;font-size:12px;color:#666;"></span>
+    <button id="btnSwitchCashier" style="
+      border:none;
+      background:#eee;
+      padding:6px 10px;
+      border-radius:6px;
+      cursor:pointer;
+      font-size:12px;
+    ">
+      🔁 Ganti Kasir
+    </button>
+  </div>
+</header>
 
-    <!-- ===== LEFT PANEL ===== -->
-    <div class="left-panel">
 
-      <!-- SIDEBAR -->
-      <aside class="left-tabs">
-        <div class="left-tabs-menu">
-          <button class="tab-btn active" id="tabSales">
-            <div class="ico">🛒</div><div>Jual</div>
-          </button>
-          <button class="tab-btn" id="tabTxn">
-            <div class="ico">📄</div><div>Trans</div>
-          </button>
-          <button class="tab-btn" id="tabSet">
-            <div class="ico">⚙️</div><div>Setting</div>
-          </button>
-          <button class="tab-btn" id="tabPrice">
-            <div class="ico">💰</div><div>Cek</div>
-          </button>
-          <button class="tab-btn" id="tabReport">
-            <div class="ico">📊</div><div>Laporan</div>
-          </button>
-        </div>
+<main class="pos-main">
 
-        <div class="left-tabs-footer">
-          <button class="tab-btn logout-btn">
-            <div class="ico">⏻</div><div>Logout</div>
-          </button>
-        </div>
-      </aside>
+  <!-- ================= LEFT (DINAMIS) ================= -->
+  <div class="left-panel">
 
-      <!-- ===== LEFT CONTENT ===== -->
-      <div class="left-content">
+    <!-- SIDEBAR TAB -->
+   <aside class="left-tabs">
 
-        <!-- ================= PANEL PRODUK ================= -->
-        <section class="product-panel" id="panel-product">
-          <div class="product-toolbar">
-            <div class="search-input">
-              <input id="searchInput" placeholder="Cari nama / kode / barcode">
-            </div>
-            <button class="btn btn-cari" id="btnCari">Cari</button>
-          </div>
+  <!-- ===== MENU ATAS ===== -->
+  <div class="left-tabs-menu">
+    <button class="tab-btn active" id="tabSales">
+      <div class="ico">🛒</div>
+      <div>Jual</div>
+    </button>
 
-          <div class="product-sort" id="productSort">
-            <div class="sort-main">
-              <button class="sort-btn active" data-sort="best">🔥 Terlaris</button>
-              <button class="sort-btn" data-sort="latest">🕒 Terbaru</button>
-              <button class="sort-btn" data-sort="az">A–Z</button>
-            </div>
+    <button class="tab-btn" id="tabTxn">
+      <div class="ico">📄</div>
+      <div>Trans</div>
+    </button>
 
-            <div class="sort-period" id="bestPeriodBox">
-              <button class="period-btn active" data-period="7d">7 Hari</button>
-              <button class="period-btn" data-period="30d">30 Hari</button>
-              <button class="period-btn" data-period="90d">90 Hari</button>
-              <button class="period-btn" data-period="180d">6 Bulan</button>
-              <button class="period-btn" data-period="365d">1 Tahun</button>
-            </div>
-          </div>
+    <button class="tab-btn" id="tabSet">
+      <div class="ico">⚙️</div>
+      <div>Setting</div>
+    </button>
 
-          <div id="productGrid" class="product-grid"></div>
+    <button class="tab-btn" id="tabPrice">
+      <div class="ico">💰</div>
+      <div>Cek</div>
+    </button>
 
-          <div id="pagination" style="text-align:center;margin-top:8px">
-            <button id="prevPage" class="btn">Prev</button>
-            <span id="pageInfo"></span>
-            <button id="nextPage" class="btn">Next</button>
-          </div>
-        </section>
+    <button class="tab-btn" id="tabReport">
+      <div class="ico">📊</div>
+      <div>Laporan</div>
+    </button>
+  </div>
 
-        <!-- ================= PANEL TRANSAKSI ================= -->
-        <section class="txn-panel" id="panel-transactions">
-          <div class="txn-toolbar">
-            <div class="search-input">
-              <input id="txnSearchInput" placeholder="Cari No Order / Nama / Telepon">
-            </div>
+  <!-- ===== FOOTER BAWAH ===== -->
+  <div class="left-tabs-footer">
+    <button class="tab-btn logout-btn">
+  <div class="ico">⏻</div>
+  <div>Logout</div>
+</button>
 
-            <select id="txnCashierFilter" style="width:220px;">
-              <option value="ALL">Semua Kasir</option>
-              <option value="ACTIVE">Kasir Aktif Saja</option>
-            </select>
+  </div>
 
-            <button class="btn btn-cari">Cari</button>
-          </div>
+</aside>
 
-          <div class="txn-body">
-            <div class="txn-list">
-              <div class="txn-list-head">
-                <div id="txnHeadTitle">Daftar Transaksi</div>
-                <div id="txnCountInfo" style="font-size:12px;color:#666;">
-                  Total: 0 transaksi
-                </div>
-              </div>
 
-              <div id="txnList" class="txn-list-items"></div>
-            </div>
+    <div class="left-content">
 
-            <div class="txn-detail">
-              <div id="txnDetailBody">
-                <div style="color:#999;">Pilih transaksi.</div>
-              </div>
-            </div>
-          </div>
-        </section>
+     <!-- =================================================
+     PANEL PRODUK
+================================================== -->
+<section class="product-panel" id="panel-product">
+  <div class="product-toolbar">
+  <div class="search-input">
+    <input id="searchInput" placeholder="Cari nama / kode / barcode">
+  </div>
 
-        <!-- ================= PANEL LAPORAN ================= -->
-        <section class="report-panel" id="panel-report" style="display:none">
-          <div class="set-card">
-            <h3>Laporan Singkat</h3>
+  <button class="btn btn-cari" id="btnCari">Cari</button>
 
-            <select id="reportCashierFilter" style="width:240px;">
-              <option value="ALL">Semua Kasir</option>
-              <option value="ACTIVE">Kasir Aktif Saja</option>
-            </select>
-          </div>
-
-          <div class="set-card" id="reportByCashierCard">
-            <h3 style="text-align:center;">Rincian Per Kasir</h3>
-            <div id="reportByCashier"></div>
-          </div>
-        </section>
-
-      </div>
-    </div>
-
-    <!-- ===== RIGHT / CART ===== -->
-    <section class="cart-panel">
-
-      <div class="cart-header">
-        <button class="cart-reset">Reset</button>
-      </div>
-
-      <div class="cart-items" id="cartItems">
-        <div style="color:#999;text-align:center">Belum ada transaksi</div>
-      </div>
-
-      <div class="cart-summary">
-        <div class="summary-row">
-          <span>Total</span>
-          <span id="cartTotal">Rp 0</span>
-        </div>
-      </div>
-
-      <button id="btnNext" class="btn-primary" style="width:100%;">
-        Selanjutnya
-      </button>
-    </section>
-
-  </main>
 </div>
 
-<!-- MODAL STRUK -->
-<div id="receiptModal" style="display:none;"></div>
 
-<!-- JS -->
-  <script src="index.js"></script>
+<!-- SORT PRODUK -->
+<!-- SORT PRODUK -->
+<div class="product-sort" id="productSort">
+
+  <div class="sort-main">
+    <button class="sort-btn active" data-sort="best">🔥 Terlaris</button>
+    <button class="sort-btn" data-sort="latest">🕒 Terbaru</button>
+    <button class="sort-btn" data-sort="az">A–Z</button>
+  </div>
+
+  <!-- PERIODE TERLARIS (muncul hanya saat pilih Terlaris) -->
+  <div class="sort-period" id="bestPeriodBox">
+    <button class="period-btn active" data-period="7d">7 Hari</button>
+    <button class="period-btn" data-period="30d">30 Hari</button>
+    <button class="period-btn" data-period="90d">90 Hari</button>
+    <button class="period-btn" data-period="180d">6 Bulan</button>
+    <button class="period-btn" data-period="365d">1 Tahun</button>
+  </div>
+
+</div>
+
+
+
+  <div id="productGrid" class="product-grid"></div>
+
+  <div id="pagination" style="text-align:center;margin-top:8px">
+    <button id="prevPage" class="btn">Prev</button>
+    <span id="pageInfo"></span>
+    <button id="nextPage" class="btn">Next</button>
+  </div>
+</section>
+
+
+      <!-- =================================================
+           PANEL PAYMENT
+      ================================================== -->
+      <section class="payment-page" id="panel-payment" style="display:none">
+        <div class="payment-wrapper">
+          <div class="payment-left">
+            <h2>Ringkasan Pembayaran</h2>
+
+            <div class="pay-summary">
+              <div class="row">
+                <span>Total Item</span>
+                <strong id="payItemCount">0</strong>
+              </div>
+              <div class="row">
+                <span>Total Bayar</span>
+                <strong id="payTotal">Rp 0</strong>
+              </div>
+            </div>
+
+            <div id="payLinesBox" style="
+              margin-top:14px;
+              border:1px solid #eee;
+              border-radius:10px;
+              overflow:hidden;
+            ">
+              <div id="payLinesList"></div>
+
+              <div style="
+                display:flex;
+                justify-content:space-between;
+                padding:10px 12px;
+                border-top:1px solid #eee;
+                background:#fafafa;
+                font-size:13px;
+              ">
+                <span>Sisa</span>
+                <strong id="payRemaining">Rp 0</strong>
+              </div>
+            </div>
+
+            <div class="pay-method">
+              <label>Metode Pembayaran</label>
+              <div class="pay-method-grid">
+                <button class="pay-method-btn" data-method="cash">💵 Cash</button>
+                <button class="pay-method-btn" data-method="debit_bca">🏦 Debit BCA</button>
+                <button class="pay-method-btn" data-method="debit_mandiri">🏦 Debit Mandiri</button>
+                <button class="pay-method-btn" data-method="qris_gopay">📱 QRIS GoPay</button>
+                <button class="pay-method-btn" data-method="transfer_bca">🔁 Transfer BCA</button>
+              </div>
+            </div>
+
+            <div class="quick-cash" id="quickCash" style="display:none; margin-top:12px; gap:10px;">
+              <button class="btn" type="button">Sama</button>
+              <button class="btn" type="button">Rp50.000</button>
+              <button class="btn" type="button">Rp100.000</button>
+            </div>
+
+            <div class="pay-input" style="margin-top:16px;">
+              <label>Uang Diterima</label>
+              <input type="number" id="cashInput" placeholder="Masukkan nominal"
+                style="width:100%;padding:10px;font-size:15px;margin-top:6px;" />
+            </div>
+
+            <div class="pay-change">
+              Kembalian: <strong id="changeOutput">Rp 0</strong>
+            </div>
+
+            <div class="pay-footer-row">
+              <button id="btnFinishPayment" class="btn-pay disabled" disabled>
+                Selesaikan Transaksi
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================
+           PANEL TRANSAKSI
+      ================================================== -->
+      <section class="txn-panel" id="panel-transactions">
+        <div class="txn-toolbar">
+          <div class="search-input">
+            <input id="txnSearchInput" placeholder="Cari No Order / Nama / Telepon">
+          </div>
+		  <!-- FILTER TRANSAKSI (mirip laporan) -->
+<div class="txn-filter" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+  <div style="font-size:12px; font-weight:700; color:#333;">Tanggal</div>
+
+  <input type="date" id="txnDateFrom" style="width:150px;" />
+  <span style="font-weight:700;">–</span>
+  <input type="date" id="txnDateTo" style="width:150px;" />
+
+  <button class="btn-outline" type="button">Hari Ini</button>
+  <button class="btn-outline" type="button">Kemarin</button>
+
+  <select id="txnCashierFilter" style="width:220px;">
+    <option value="ALL">Semua Kasir</option>
+    <option value="ACTIVE">Kasir Aktif Saja</option>
+  </select>
+</div>
+
+          <button class="btn btn-cari">Cari</button>
+          <button class="btn" title="Refresh">↻</button>
+        </div>
+
+        <div class="txn-body">
+          <div class="txn-list">
+            <div class="txn-list-head" id="txnListHead">
+  <div id="txnHeadTitle">Daftar Transaksi</div>
+  <div id="txnCountInfo" style="font-size:12px;color:#666;margin-top:4px;">
+    Total: 0 transaksi
+  </div>
+</div>
+
+            <div class="txn-list-items" id="txnList"></div>
+            <div style="padding:10px 12px; border-top:1px solid #eee; background:#fafafa; display:flex; gap:8px;">
+              <button class="btn" style="flex:1">Prev</button>
+              <button class="btn" style="flex:1">Next</button>
+            </div>
+          </div>
+
+          <div class="txn-detail">
+            <div class="txn-detail-head">
+              <div>
+                <div class="txn-detail-title" id="txnDetailTitle">Pilih transaksi</div>
+                <div class="txn-detail-sub" id="txnDetailSub">Klik salah satu transaksi di kiri</div>
+              </div>
+              <div id="txnDetailBadge"></div>
+            </div>
+
+            <div class="txn-detail-body" id="txnDetailBody">
+              <div style="color:#999;">Belum ada data.</div>
+            </div>
+
+            <div class="txn-actions" id="txnDetailActions" style="display:none;">
+  <button class="btn-outline">🖨 Cetak Ulang Struk</button>
+  <button class="btn-outline">☁️ Sync Jubelio</button>
+  <button class="btn-primary">🔁 Pesan Ulang</button>
+</div>
+
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-panel" id="panel-settings">
+  <div class="settings-two-col">
+
+    <!-- KIRI: STRUK -->
+    <div class="set-card struk-card">
+      <h3>Struk</h3>
+
+      <div class="set-row">
+        <label>Ukuran kertas</label>
+        <select id="setReceiptPaper">
+          <option value="80">80 mm</option>
+          <option value="58">58 mm</option>
+        </select>
+      </div>
+
+      <div class="set-row">
+        <label>Nama Toko</label>
+        <input type="text" id="setStoreName">
+      </div>
+
+      <div class="set-row">
+        <label>Sub Header</label>
+        <input type="text" id="setStoreSub">
+      </div>
+
+      <div class="set-block">
+        <label>Catatan Struk 1</label>
+        <textarea id="setNote1" rows="2"></textarea>
+      </div>
+
+      <div class="set-block">
+        <label>Catatan Struk 2</label>
+        <textarea id="setNote2" rows="2"></textarea>
+      </div>
+
+      <div class="set-row">
+        <label>ShiftX Struk (mm)</label>
+        <input type="number" id="setShiftX" step="0.1">
+      </div>
+
+      <div class="small-note">
+        Kiri kepotong → <b>-0.5</b> · Terlalu kosong → <b>+0.5</b>
+      </div>
+    </div>
+
+    <!-- KANAN: FILTER (ATAS) + SINKRON (BAWAH) -->
+    <div class="right-stack">
+
+      <div class="set-card">
+        <h3>Filter Penjualan</h3>
+
+        <label class="set-check">
+          <input type="checkbox" id="setHideEmpty">
+          <span>Sembunyikan stok habis</span>
+        </label>
+
+        <label class="set-check">
+          <input type="checkbox" id="setRequireStock">
+          <span>Akuisisi stok (wajib ada stok)</span>
+        </label>
+
+        <label class="set-check">
+          <input type="checkbox" id="setHideKtn">
+          <span>Sembunyikan “Ktn”</span>
+        </label>
+
+        <div class="small-note">
+          Sinkron dengan checkbox di tab Penjualan.
+        </div>
+      </div>
+
+      <div class="set-card">
+        <h3>Sinkronisasi Produk</h3>
+
+        <div class="set-row">
+          <label>Auto Sync (jam)</label>
+          <input type="number" id="setAutoSyncHours" min="1">
+        </div>
+
+        <div class="small-note">
+          Otomatis sync jika cache lebih lama dari jam ini.
+        </div>
+
+        <button class="btn-primary">
+          🔄 Sync Sekarang
+        </button>
+
+        <div id="syncStatus" class="sync-status"></div>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+
+<!-- =================================================
+     PANEL LAPORAN
+================================================== -->
+<section class="report-panel" id="panel-report" style="display:none">
+  <div class="set-card">
+    <h3>Laporan Singkat</h3>
+
+    <div class="set-row" style="flex-wrap:wrap; justify-content:flex-start; padding:6px 0;">
+
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div style="font-size:13px; color:#333; font-weight:700;">Tanggal</div>
+
+        <input type="date" id="reportDateFrom" style="width:170px;" />
+<span style="font-weight:700;">–</span>
+<input type="date" id="reportDateTo" style="width:170px;" />
+
+
+        <button class="btn-outline" type="button">Hari Ini</button>
+        <button class="btn-outline" type="button">Kemarin</button>
+
+        <select id="reportCashierFilter" style="width:240px;">
+          <option value="ALL">Semua Kasir</option>
+          <option value="ACTIVE">Kasir Aktif Saja</option>
+        </select>
+
+      </div>
+    </div>
+
+
+  </div>
+
+  <div style="display:grid; grid-template-columns: 1fr; gap:16px;">
+
+
+  <div class="set-card">
+   <h3 style="text-align:center; margin-bottom:12px;">Ringkasan</h3>
+
+    <div id="reportSummary"
+  style="
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap:12px;
+    width:100%;
+  ">
+</div>
+
+
+  </div>
+
+
+</div>
+
+
+  <div class="set-card" id="reportByCashierCard" style="width:100%;">
+<h3 style="text-align:center; margin-bottom:12px;">Rincian Per Kasir</h3>
+
+  <div id="reportByCashier"></div>
+</div>
+
+</section>
+    </div>
+  </div>
+
+  <!-- ================= RIGHT (TETAP) ================= -->
+  <section class="cart-panel">
+
+    <div class="cart-header" style="
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding-bottom:8px;
+">
+  <div style="display:flex; gap:6px; flex-wrap:wrap;">
+    <button class="btn-outline">🗂 Tersimpan</button>
+    <button class="btn-outline">💾 Simpan</button>
+  </div>
+
+  <button class="cart-reset">Reset</button>
+</div>
+
+
+
+    <div class="cart-customer" style="position:relative">
+      <label>Customer (opsional)</label>
+
+      <input
+  id="customerInput"
+  type="text"
+  placeholder="Customer (kosong = UMUM)"
+  class="customer-search-input"
+/>
+
+
+      <div id="customerDropdown" class="customer-dropdown"></div>
+
+    </div>
+
+    <div id="cartItems" class="cart-items">
+      <div style="color:#999;text-align:center">Belum ada transaksi</div>
+    </div>
+
+    <div style="text-align:right; margin-bottom:8px;">
+      <button class="btn-back" style="padding:8px 12px;">
+        🛒 Ubah Transaksi
+      </button>
+    </div>
+
+    <div class="cart-summary" style="margin-top:8px;">
+      <div class="summary-row">
+        <span>Sub Total (<span id="itemCount">0</span> Barang)</span>
+        <span id="cartSubtotal">Rp 0</span>
+      </div>
+      <div class="summary-row total">
+        <span>Total Bayar</span>
+        <span id="cartTotal">Rp 0</span>
+      </div>
+    </div>
+
+   <button id="btnNext" class="btn-primary" style="width:100%;margin-top:8px;">
+  Selanjutnya
+</button>
+  </section>
+
+
+</main>
+
+</div>
+
+<!-- =====================================================
+     STRUK TRANSAKSI (POPUP)
+===================================================== -->
+<div id="receiptModal" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  z-index:9999;
+">
+  <div id="receiptContent" style="
+    background:#fff;
+    font-family:monospace;
+    box-sizing:border-box;
+  ">
+  </div>
+</div>
+<!-- =====================================================
+     HOLD / PARKED ORDERS (MODAL)
+===================================================== -->
+<div id="holdModal" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  z-index:9998;
+  align-items:flex-start;
+  justify-content:center;
+  padding-top:30px;
+">
+  <div style="
+    width:720px;
+    max-width:94vw;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 10px 30px rgba(0,0,0,.2);
+    overflow:hidden;
+  ">
+    <div style="
+      padding:12px 14px;
+      border-bottom:1px solid #eee;
+      background:#fafafa;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    ">
+      <div style="font-weight:800;">🗂 Transaksi Tersimpan</div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-outline">↻ Refresh</button>
+        <button class="btn-outline">Tutup</button>
+      </div>
+    </div>
+
+    <div style="padding:14px;">
+      <div id="holdList" style="border:1px solid #eee;border-radius:12px;overflow:hidden;"></div>
+      <div style="margin-top:10px;color:#777;font-size:12px;">
+        Tips: Simpan transaksi saat customer masih pilih-pilih, supaya kasir bisa lanjut transaksi lain dulu.
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<script src="auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="index.js"></script>
 
 </body>
 </html>
