@@ -33,7 +33,6 @@ const sb = window.supabase.createClient(
 /* =====================================================
    DOM REFS
 ===================================================== */
-const panelReport = document.getElementById("panel-report");
 /* =====================================================
    MAIN PANELS (SSOT)
 ===================================================== */
@@ -41,6 +40,8 @@ const panelProduct       = document.getElementById("panel-product");
 const panelPayment       = document.getElementById("panel-payment");
 const panelTransactions  = document.getElementById("panel-transactions");
 const panelSettings      = document.getElementById("panel-settings");
+const panelReport = document.getElementById("panel-report");
+
 
 const productGrid = document.getElementById("productGrid");
 const pageInfo = document.getElementById("pageInfo");
