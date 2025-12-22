@@ -1016,8 +1016,6 @@ return;
   if (currentQuery) {
    q = q.or(`item_name.ilike.%${currentQuery}%,item_code.ilike.%${currentQuery}%`);
 
-);
-
   }
   if (filters.hideEmpty) q = q.gt("stok_tersedia", 0);
 
