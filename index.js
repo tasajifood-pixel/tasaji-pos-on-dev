@@ -639,8 +639,16 @@ async function findProductByBarcode(barcode) {
   .eq("barcode", barcode)
   .limit(1)
   .single();
+if (error || !data) return null;
+
+const product = {
+  ...data,
+  available_qty: Number(data.stok_tersedia || 0)
+};
+
 if (product.available_qty <= 0 && filters.requireStock) return null;
 return product;
+
 
 
 // simpan cart + customer ke localStorage
