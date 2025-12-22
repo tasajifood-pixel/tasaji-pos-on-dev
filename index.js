@@ -1,18 +1,24 @@
-// ===== AUTH / LOGIN =====
-  if (!localStorage.getItem("pos_user")) {
-    window.location.replace("login.html");
-  }
-
-// ===== AUTH / LOGIN =====
 function logout() {
   if (confirm("Yakin ingin logout?")) {
+
+    // AUTH
     localStorage.removeItem("pos_user");
+
+    // SSOT KASIR (WAJIB BERSIH)
+    localStorage.removeItem("pos_active_cashier_id");
+    localStorage.removeItem("pos_active_cashier_name");
+
+    // KODE / UI KASIR (OPSIONAL)
+    localStorage.removeItem("pos_cashier_code");
+
+    // LEGACY (AMAN DIHAPUS BERTAHAP)
     localStorage.removeItem("pos_cashier_id");
     localStorage.removeItem("pos_cashier_name");
 
     window.location.replace("login.html");
   }
 }
+
 
 /* =====================================================
    SUPABASE
@@ -145,11 +151,13 @@ let CASHIER_ID = null;
 let CASHIER_NAME = null;
 let AUTO_SYNC_HOURS = 3; // default
 
-
-
 function loadCashier(){
-  CASHIER_ID = localStorage.getItem("pos_cashier_id") || null;
-  CASHIER_NAME = localStorage.getItem("pos_cashier_name") || null;
+  // SSOT kasir (UNTUK DATA & FILTER)
+  CASHIER_ID = localStorage.getItem("pos_active_cashier_id") || null;
+  CASHIER_NAME = localStorage.getItem("pos_active_cashier_name") || null;
+
+  // OPTIONAL: kode kasir hanya untuk tampilan UI
+  CASHIER_CODE = localStorage.getItem("pos_cashier_code") || null;
 }
 
 
@@ -356,7 +364,7 @@ function getLocalDateYMD(){
 
 function normalizeCashierIdForLocal(){
   // KSR-01 -> KSR01 (biar rapih)
-  const raw = (CASHIER_ID || localStorage.getItem("pos_cashier_id") || "KSR00");
+  const raw = CASHIER_ID || "UNKNOWN";
   return String(raw).replace(/[^A-Za-z0-9]/g, "");
 }
 
@@ -521,8 +529,9 @@ function parkCurrentOrder(){
     label,
     created_at: Date.now(),
 
-    cashier_id: CASHIER_ID || localStorage.getItem("pos_cashier_id") || null,
-    cashier_name: CASHIER_NAME || localStorage.getItem("pos_cashier_name") || null,
+ cashier_id: CASHIER_ID,
+cashier_name: CASHIER_NAME,
+
 
     // simpan state
     customer: ACTIVE_CUSTOMER || null,
@@ -2598,8 +2607,7 @@ const cashierFilter =
   || localStorage.getItem("txn_cashier_filter")
   || "ACTIVE";
 
-const activeCashierId =
-  CASHIER_ID || localStorage.getItem("pos_cashier_id") || null;
+const activeCashierId = CASHIER_ID || null;
   if (resetPage) TXN_PAGE = 1;
   // ✅ kalau terlihat online tapi server nggak bisa dijangkau → anggap OFFLINE
   const supabaseOK = await canReachSupabase();
@@ -2607,7 +2615,7 @@ const activeCashierId =
     const kw = ((txnSearchInput?.value || "").trim()).toLowerCase();
 
     let list = loadOfflineTransactions()
-      .filter(x => !CASHIER_ID || x.cashier_id === CASHIER_ID);
+      .filter(x => !activeCashierId || x.cashier_id === activeCashierId);
 
     if (kw) {
       list = list.filter(x => {
@@ -3220,23 +3228,23 @@ if (isOnline()) {
 // ==============================
 // WELCOME SCREEN LOGIC
 // ==============================
-function selectCashier(id, name){
-  localStorage.setItem("pos_cashier_id", id);
-  localStorage.setItem("pos_cashier_name", name);
+function selectCashier(code, name){
+  // ⛔ JANGAN UBAH SSOT KASIR
+  // CASHIER_ID & CASHIER_NAME HARUS TETAP dari login
 
-  CASHIER_ID = id;
-  CASHIER_NAME = name;
+  // simpan KODE hanya untuk UI
+  localStorage.setItem("pos_cashier_code", code);
+
+  // pastikan name konsisten dengan login
+  CASHIER_NAME = localStorage.getItem("pos_active_cashier_name") || name;
 
   updateCashierInfo();
   updateTxnHead();
-
-  // ✅ PENTING: bersihkan transaksi kasir sebelumnya
   resetTransactionUI();
 
-  // ✅ kalau tab Trans sedang aktif, load transaksi kasir baru
-  if (document.getElementById("tabTxn")?.classList.contains("active")) {
-    loadTransactions(true);
-  }
+  document.getElementById("welcomeScreen").style.display = "none";
+}
+
 
   document.getElementById("welcomeScreen").style.display = "none";
     updateSwitchCashierButton(); // ✅ tambah ini
@@ -3259,7 +3267,8 @@ function selectCashier(id, name){
 
 
 function checkCashier(){
-  const id = localStorage.getItem("pos_cashier_id");
+  const id = localStorage.getItem("pos_active_cashier_id");
+
 
   if (!id) {
     document.getElementById("welcomeScreen").style.display = "flex";
@@ -3287,8 +3296,10 @@ function resetCashier(){
   }
   if (!confirm("Ganti kasir? Transaksi berjalan akan tetap aman.")) return;
 
-  localStorage.removeItem("pos_cashier_id");
-  localStorage.removeItem("pos_cashier_name");
+localStorage.removeItem("pos_active_cashier_id");
+localStorage.removeItem("pos_active_cashier_name");
+localStorage.removeItem("pos_cashier_code");
+
 
   CASHIER_ID = null;
   CASHIER_NAME = null;
@@ -3303,35 +3314,39 @@ function resetCashier(){
 }
 
 function updateTxnHead(){
-  const el = document.getElementById("txnListHead");
-  if (!el) return;
-
-  const name = CASHIER_NAME || localStorage.getItem("pos_cashier_name") || "";
-  const id   = CASHIER_ID || localStorage.getItem("pos_cashier_id") || "";
-
   const titleEl = document.getElementById("txnHeadTitle");
+  if (!titleEl) return;
 
-  if (titleEl) {
-    titleEl.textContent = (name && id)
-      ? `Daftar Transaksi — ${name} (${id})`
-      : "Daftar Transaksi";
-  }
-} // ✅ INI YANG KURANG
+  const name = CASHIER_NAME;
+  const code = localStorage.getItem("pos_cashier_code");
+
+  titleEl.textContent = name
+    ? (code
+        ? `Daftar Transaksi — ${name} (${code})`
+        : `Daftar Transaksi — ${name}`)
+    : "Daftar Transaksi";
+}
+
 
 
 function updateCashierInfo(){
   const el = document.getElementById("cashierInfo");
   if (!el) return;
 
-  const name = localStorage.getItem("pos_cashier_name");
-  const id   = localStorage.getItem("pos_cashier_id");
+  const name = localStorage.getItem("pos_active_cashier_name");
+  const code = localStorage.getItem("pos_cashier_code");
 
-  if (name && id) {
-    el.textContent = `Kasir: ${name} (${id})`;
-  } else {
+  if (!name) {
     el.textContent = "";
+    return;
   }
+
+  el.textContent = code
+    ? `Kasir: ${name} (${code})`
+    : `Kasir: ${name}`;
 }
+
+
 window.addEventListener("online", () => {
   console.log("🌐 Online kembali → sync offline orders");
   syncOfflineOrdersToServer();
@@ -3611,10 +3626,11 @@ async function loadReport(forceRefresh){
       if (cashierBox) cashierBox.innerHTML = "";
     }
 
-    let cashierFilterId = null;
-    if(filterMode === "ACTIVE"){
-      cashierFilterId = CASHIER_ID || localStorage.getItem("pos_cashier_id") || null;
-    }
+   let cashierFilterId = null;
+if(filterMode === "ACTIVE"){
+  cashierFilterId = CASHIER_ID || null;
+}
+
 
    // if(info) info.textContent = "⏳ Memuat laporan...";
 
