@@ -305,23 +305,20 @@ function isOnline(){
   return navigator.onLine === true;
 }
 async function canReachSupabase(){
-  try{
-    const ctrl = new AbortController();
-    const t = setTimeout(()=>ctrl.abort(), 1500);
+  if (!navigator.onLine) return false;
 
-    // ping ringan ke supabase (kalau internet putus, akan throw)
-    await fetch("https://fpjfdxpdaqtopjorqood.supabase.co/rest/v1/", {
-      method: "HEAD",
-      mode: "no-cors",
-      signal: ctrl.signal
-    });
+  try {
+    const { error } = await sb
+      .from("master_items")
+      .select("item_id")
+      .limit(1);
 
-    clearTimeout(t);
-    return true;
-  }catch{
+    return !error;
+  } catch {
     return false;
   }
 }
+
 
 // ==============================
 // OFFLINE ORDER NO GENERATOR
