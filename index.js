@@ -3732,8 +3732,7 @@ Object.entries(appliedObj).forEach(([k, amt]) => {
     const handler = quickCashHandlers[idx];
     if (handler) btn.setAttribute("onclick", handler);
   });
-
-  const btnFinishPayment = document.getElementById("btnFinishPayment");
+	
   if (btnFinishPayment) btnFinishPayment.setAttribute("onclick", "processPayment()");
 
   const txnFilterButtons = document.querySelectorAll("#panel-transactions .txn-filter .btn-outline");
