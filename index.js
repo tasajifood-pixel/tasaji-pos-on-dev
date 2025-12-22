@@ -625,7 +625,20 @@ document.addEventListener("click", (e) => {
 async function findProductByBarcode(barcode) {
   if (!barcode) return null;
 
-  const { data, error } = await sb
+  // 1️⃣ Cari item_id dari MASTER ITEMS (SSOT BARCODE)
+  const { data: master, error: e1 } = await sb
+    .from("master_items")
+    .select("item_id")
+    .eq("barcode", barcode)
+    .limit(1)
+    .single();
+
+  if (e1 || !master?.item_id) {
+    return null; // barcode tidak dikenal
+  }
+
+  // 2️⃣ Ambil data produk + stok dari INVENTORY UI
+  const { data: product, error: e2 } = await sb
     .schema("decision")
     .from("v_inventory_ui")
     .select(`
@@ -635,20 +648,23 @@ async function findProductByBarcode(barcode) {
       thumbnail,
       stok_tersedia
     `)
-    .eq("barcode", barcode)
+    .eq("item_id", master.item_id)
     .limit(1)
     .single();
 
-  if (error || !data) return null;
+  if (e2 || !product) return null;
 
-  const product = {
-    ...data,
-    available_qty: Number(data.stok_tersedia || 0)
+  // 3️⃣ Normalisasi agar konsisten dengan cart
+  const normalized = {
+    ...product,
+    available_qty: Number(product.stok_tersedia || 0)
   };
 
-  if (product.available_qty <= 0 && filters.requireStock) return null;
-  return product;
-} // ✅ INI YANG HILANG
+  // 4️⃣ Hormati setting require stock
+  if (normalized.available_qty <= 0 && filters.requireStock) return null;
+
+  return normalized;
+}
 
 
 
