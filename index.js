@@ -1700,18 +1700,13 @@ searchInput.addEventListener("keydown", async (e) => {
   }
 });
 
-
-/* =====================================================
-   PAGE SWITCH: CASHIER <-> PAYMENT
-===================================================== */
-// ===== PAYMENT =====
 async function goToPayment() {
   if (!cart.length) {
     alert("Belum ada item di keranjang");
     return;
   }
 
-    // ✅ nomor order: online pakai server, offline pakai local
+  // ✅ nomor order: online pakai server, offline pakai local
   if (!CURRENT_SALESORDER_NO && !CURRENT_LOCAL_ORDER_NO) {
     if (isOnline()) {
       CURRENT_ORDER_MODE = "online";
@@ -1724,36 +1719,50 @@ async function goToPayment() {
     saveOrderState();
   }
 
-
   // pastikan tab kiri tetap "sales"
   setActiveTabBtn("sales");
 
-  panelProduct.style.display = "none";
-  panelPayment.style.display = "block";
-  panelPayment.dataset.active = "1";
-  panelTransactions.style.display = "none";
-  panelSettings.style.display = "none";
-  btnNext.style.display = "none";
+  // 🔒 AMBIL DOM + GUARD
+  const panelProduct      = document.getElementById("panelProduct");
+  const panelPayment      = document.getElementById("panelPayment");
+  const panelTransactions= document.getElementById("panelTransactions");
+  const panelSettings     = document.getElementById("panelSettings");
+  const btnNext           = document.getElementById("btnNext");
 
-  payTotal.textContent = formatRupiah(calcTotal());
-  payItemCount.textContent = calcItemCount();
+  const payTotal          = document.getElementById("payTotal");
+  const payItemCount      = document.getElementById("payItemCount");
+  const cashInput         = document.getElementById("cashInput");
+  const changeOutput      = document.getElementById("changeOutput");
+  const quickCash         = document.getElementById("quickCash");
+
+  if (panelProduct) panelProduct.style.display = "none";
+  if (panelPayment) {
+    panelPayment.style.display = "block";
+    panelPayment.dataset.active = "1";
+  }
+  if (panelTransactions) panelTransactions.style.display = "none";
+  if (panelSettings) panelSettings.style.display = "none";
+  if (btnNext) btnNext.style.display = "none";
+
+  if (payTotal) payTotal.textContent = formatRupiah(calcTotal());
+  if (payItemCount) payItemCount.textContent = calcItemCount();
 
   selectedPaymentMethod = null;
-  document.querySelectorAll(".pay-method-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".pay-method-btn")
+    .forEach(b => b.classList.remove("active"));
 
-  cashInput.disabled = false;
-  cashInput.readOnly = false;
-  cashInput.value = "";
-  changeOutput.textContent = formatRupiah(0);
-
+  if (cashInput) {
+    cashInput.disabled = false;
+    cashInput.readOnly = false;
+    cashInput.value = "";
+  }
+  if (changeOutput) changeOutput.textContent = formatRupiah(0);
   if (quickCash) quickCash.style.display = "none";
 
   PAYMENT_LINES = [];
-  cashInput.value = "";
-  changeOutput.textContent = formatRupiah(0);
-
   recalcPaymentStatus();
 }
+
 
 function methodLabel(method){
   const map = {
@@ -1909,8 +1918,10 @@ function removePayLine(idx){
   recalcPaymentStatus();
 }
 
-document.querySelectorAll(".pay-method-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
+const payMethodBtns = document.querySelectorAll(".pay-method-btn");
+if (payMethodBtns.length) {
+  payMethodBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
     document.querySelectorAll(".pay-method-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     selectedPaymentMethod = btn.dataset.method;
