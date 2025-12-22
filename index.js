@@ -1940,6 +1940,8 @@ if (payMethodBtns.length) {
   });
 });
 
+}
+
 async function processPayment() {
   // ==============================
   // OFFLINE MODE: SIMPAN LOKAL SAJA
