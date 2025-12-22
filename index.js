@@ -153,7 +153,9 @@ let REPORT_UI_BOUND = false;
 // kasir/terminal (tanpa login)
 let CASHIER_ID = null;
 let CASHIER_NAME = null;
+let CASHIER_CODE = null; // ✅ OPTIONAL (UI only)
 let AUTO_SYNC_HOURS = 3; // default
+
 
 function loadCashier(){
   // SSOT kasir (UNTUK DATA & FILTER)
@@ -3219,6 +3221,133 @@ function bindBestPeriodButtons(){
     });
   });
 }
+/* =====================================================
+   UI EVENTS (SSOT)
+===================================================== */
+function bindUIEvents(){
+  // tab kiri
+  const tabSales  = document.getElementById("tabSales");
+  const tabTxn    = document.getElementById("tabTxn");
+  const tabSet    = document.getElementById("tabSet");
+  const tabReport = document.getElementById("tabReport");
+  const tabPrice  = document.getElementById("tabPrice");
+
+  tabSales?.addEventListener("click", () => switchLeftTab("sales"));
+  tabTxn?.addEventListener("click", () => switchLeftTab("txn"));
+  tabSet?.addEventListener("click", () => switchLeftTab("set"));
+  tabReport?.addEventListener("click", () => switchLeftTab("report"));
+  tabPrice?.addEventListener("click", openPriceCheck);
+
+  // logout
+  const logoutBtn = document.querySelector(".logout-btn");
+  logoutBtn?.addEventListener("click", logout);
+
+  // search produk
+  searchInput?.addEventListener("input", () => {
+    currentQuery = (searchInput.value || "").trim();
+    page = 1;
+    loadProducts();
+  });
+
+  btnCari?.addEventListener("click", () => {
+    page = 1;
+    loadProducts();
+  });
+
+  // pagination produk
+  prevPage?.addEventListener("click", () => {
+    if (page <= 1) return;
+    page--;
+    loadProducts();
+  });
+
+  nextPage?.addEventListener("click", () => {
+    page++;
+    loadProducts();
+  });
+
+  // barcode enter
+  searchInput?.addEventListener("keydown", async (e) => {
+    if (e.key !== "Enter") return;
+
+    const barcode = (searchInput.value || "").trim();
+    if (!barcode) return;
+
+    e.preventDefault();
+
+    const product = await findProductByBarcode(barcode);
+    if (product) {
+      await addToCart(product);
+      searchInput.value = "";
+      currentQuery = "";
+      page = 1;
+      loadProducts();
+    } else {
+      alert("Produk dengan barcode tersebut tidak ditemukan / stok habis");
+    }
+  });
+
+  // tombol transaksi -> bayar & balik
+  btnNext?.addEventListener("click", goToPayment);
+  const backToEditBtn = document.querySelector(".cart-panel .btn-back");
+  backToEditBtn?.addEventListener("click", backToEdit);
+
+  // reset cart
+  const cartReset = document.querySelector(".cart-reset");
+  cartReset?.addEventListener("click", resetCart);
+
+  // hold modal buttons (toolbar)
+  const holdToolbarButtons = document.querySelectorAll("#holdModal .btn-outline");
+  holdToolbarButtons?.[0]?.addEventListener("click", refreshHoldList);
+  holdToolbarButtons?.[1]?.addEventListener("click", closeHoldModal);
+
+  // hold buttons di cart header
+  const holdButtons = document.querySelectorAll(".cart-header .btn-outline");
+  holdButtons?.[0]?.addEventListener("click", openHoldModal);
+  holdButtons?.[1]?.addEventListener("click", parkCurrentOrder);
+
+  // quick cash buttons
+  const quickCashButtons = document.querySelectorAll("#quickCash .btn");
+  quickCashButtons?.[0]?.addEventListener("click", () => setCash(calcTotal()));
+  quickCashButtons?.[1]?.addEventListener("click", () => setCash(50000));
+  quickCashButtons?.[2]?.addEventListener("click", () => setCash(100000));
+
+  // finish payment
+  btnFinishPayment?.addEventListener("click", processPayment);
+
+  // txn filters (today/yesterday)
+  const txnFilterButtons = document.querySelectorAll("#panel-transactions .txn-filter .btn-outline");
+  txnFilterButtons?.[0]?.addEventListener("click", txnSetToday);
+  txnFilterButtons?.[1]?.addEventListener("click", txnSetYesterday);
+
+  // txn search button
+  const txnSearchButtons = document.querySelectorAll("#panel-transactions .txn-toolbar button.btn");
+  txnSearchButtons?.forEach(b => b.addEventListener("click", () => loadTransactions(true)));
+
+  // txn paging buttons
+  const txnPagingButtons = document.querySelectorAll("#panel-transactions .txn-list button.btn");
+  txnPagingButtons?.[0]?.addEventListener("click", txnPrevPage);
+  txnPagingButtons?.[1]?.addEventListener("click", txnNextPage);
+
+  // txn detail actions (reprint, sync, reorder) -> aman: attach by id/class kalau ada
+  const txnActions = document.querySelectorAll("#txnDetailActions button");
+  txnActions?.[0]?.addEventListener("click", txnReprint);
+  txnActions?.[1]?.addEventListener("click", txnSyncJubelio);
+  txnActions?.[2]?.addEventListener("click", txnReorder);
+
+  // manual sync products
+  const manualSyncButton = document.querySelector("#panel-settings .btn-primary");
+  manualSyncButton?.addEventListener("click", manualSyncProducts);
+
+  // report filters
+  const reportFilterButtons = document.querySelectorAll("#panel-report .btn-outline");
+  reportFilterButtons?.[0]?.addEventListener("click", reportSetToday);
+  reportFilterButtons?.[1]?.addEventListener("click", reportSetYesterday);
+
+  // receipt modal close
+  const receiptModal = document.getElementById("receiptModal");
+  receiptModal?.addEventListener("click", () => { receiptModal.style.display = "none"; });
+}
 
 /* =====================================================
    INIT
@@ -3227,12 +3356,23 @@ function bindBestPeriodButtons(){
 (async () => {
 
   // 1️⃣ load kasir dulu
-  loadCashier();
+    loadCashier();
+
+  // ⛔ SSOT GUARD: wajib ada kasir dari login
+  if (!CASHIER_ID || !CASHIER_NAME) {
+    alert("Kasir belum terdeteksi. Silakan login ulang.");
+    window.location.replace("login.html");
+    return;
+  }
+
   updateCashierInfo();
   updateTxnHead();
 
-  // 2️⃣ cek apakah perlu tampil welcome
-  checkCashier();
+  // ✅ bind events setelah DOM siap
+  bindUIEvents();
+
+  // 2️⃣ bind UI events (WAJIB)
+  bindUIEvents();
 
   // 3️⃣ settings
   loadSettings();
@@ -3304,57 +3444,6 @@ if (isOnline()) {
 })();
 
 
-// ==============================
-// WELCOME SCREEN LOGIC
-// ==============================
-
-/**
- * Pilih kasir (UI ONLY)
- * SSOT kasir tetap dari LOGIN
- */
-function selectCashier(code){
-  // simpan kode kasir hanya untuk UI
-  localStorage.setItem("pos_cashier_code", code);
-
-  // pastikan variabel global terisi dari SSOT
-  loadCashier();
-
-  updateCashierInfo();
-  updateTxnHead();
-  resetTransactionUI();
-
-  document.getElementById("welcomeScreen").style.display = "none";
-}
-
-/**
- * Cek apakah kasir sudah ada
- * Dipanggil saat app load
- */
-function checkCashier(){
-  loadCashier(); // ✅ SSOT
-
-  const ws = document.getElementById("welcomeScreen");
-
-  if (!CASHIER_ID || !CASHIER_NAME) {
-    if (ws) ws.style.display = "flex";
-    return;
-  }
-
-  if (ws) ws.style.display = "none";
-}
-
-/**
- * Reset / ganti kasir
- */
-function resetCashier(){
-  // ❌ tidak boleh ganti kasir saat transaksi aktif
-  if (isOrderActive()){
-    alert(
-      "Tidak bisa ganti kasir saat ada transaksi aktif.\n" +
-      "Selesaikan transaksi atau klik Reset dulu."
-    );
-    return;
-  }
 
   if (!confirm("Ganti kasir? Transaksi berjalan akan tetap aman.")) return;
 
@@ -3382,13 +3471,9 @@ function updateTxnHead(){
   const titleEl = document.getElementById("txnHeadTitle");
   if (!titleEl) return;
 
-  const name = CASHIER_NAME;
-  const code = localStorage.getItem("pos_cashier_code");
-
+  const name = CASHIER_NAME || "";
   titleEl.textContent = name
-    ? (code
-        ? `Daftar Transaksi — ${name} (${code})`
-        : `Daftar Transaksi — ${name}`)
+    ? `Daftar Transaksi — ${name}`
     : "Daftar Transaksi";
 }
 
@@ -3399,17 +3484,10 @@ function updateCashierInfo(){
   const el = document.getElementById("cashierInfo");
   if (!el) return;
 
-  const name = CASHIER_NAME;
-  const code = localStorage.getItem("pos_cashier_code");
+  const name = CASHIER_NAME || "";
+  if (!name) { el.textContent = ""; return; }
 
-  if (!name) {
-    el.textContent = "";
-    return;
-  }
-
-  el.textContent = code
-    ? `Kasir: ${name} (${code})`
-    : `Kasir: ${name}`;
+  el.textContent = `Kasir: ${name}`;
 }
 
 // ==============================
@@ -3869,83 +3947,4 @@ Object.entries(appliedObj).forEach(([k, amt]) => {
   }
 }
 
-  const cashierButtons = document.querySelectorAll("#welcomeScreen .btn-cashier");
-  const cashierHandlers = [
-    "selectCashier('KSR-01','Rifqi')",
-    "selectCashier('KSR-02','Inan')",
-    "selectCashier('KSR-03','Imad')",
-    "selectCashier('KSR-04','Ahmad')"
-  ];
-  cashierButtons.forEach((btn, idx) => {
-    const handler = cashierHandlers[idx];
-    if (handler) btn.setAttribute("onclick", handler);
-  });
-
-  const btnSwitchCashier = document.getElementById("btnSwitchCashier");
-  if (btnSwitchCashier) btnSwitchCashier.setAttribute("onclick", "resetCashier()");
-
-  const tabSales = document.getElementById("tabSales");
-  if (tabSales) tabSales.setAttribute("onclick", "switchLeftTab(\'sales\')");
-  const tabTxn = document.getElementById("tabTxn");
-  if (tabTxn) tabTxn.setAttribute("onclick", "switchLeftTab(\'txn\')");
-  const tabSet = document.getElementById("tabSet");
-  if (tabSet) tabSet.setAttribute("onclick", "switchLeftTab(\'set\')");
-  const tabPrice = document.getElementById("tabPrice");
-  if (tabPrice) tabPrice.setAttribute("onclick", "openPriceCheck()");
-  const tabReport = document.getElementById("tabReport");
-  if (tabReport) tabReport.setAttribute("onclick", "switchLeftTab(\'report\')");
-
-  const logoutBtn = document.querySelector(".logout-btn");
-  if (logoutBtn) logoutBtn.setAttribute("onclick", "logout()");
-
-  const quickCashButtons = document.querySelectorAll("#quickCash .btn");
-  const quickCashHandlers = [
-    "setCash(calcTotal())",
-    "setCash(50000)",
-    "setCash(100000)"
-  ];
-  quickCashButtons.forEach((btn, idx) => {
-    const handler = quickCashHandlers[idx];
-    if (handler) btn.setAttribute("onclick", handler);
-  });
-	
-  if (btnFinishPayment) btnFinishPayment.setAttribute("onclick", "processPayment()");
-
-  const txnFilterButtons = document.querySelectorAll("#panel-transactions .txn-filter .btn-outline");
-  if (txnFilterButtons[0]) txnFilterButtons[0].setAttribute("onclick", "txnSetToday()");
-  if (txnFilterButtons[1]) txnFilterButtons[1].setAttribute("onclick", "txnSetYesterday()");
-
-  const txnSearchButtons = document.querySelectorAll("#panel-transactions .txn-toolbar button.btn");
-  txnSearchButtons.forEach(btn => btn.setAttribute("onclick", "loadTransactions(true)"));
-
-  const txnPagingButtons = document.querySelectorAll("#panel-transactions .txn-list button.btn");
-  if (txnPagingButtons[0]) txnPagingButtons[0].setAttribute("onclick", "txnPrevPage()");
-  if (txnPagingButtons[1]) txnPagingButtons[1].setAttribute("onclick", "txnNextPage()");
-
-  const txnActions = document.querySelectorAll("#txnDetailActions button");
-  if (txnActions[0]) txnActions[0].setAttribute("onclick", "txnReprint()");
-  if (txnActions[1]) txnActions[1].setAttribute("onclick", "txnSyncJubelio()");
-  if (txnActions[2]) txnActions[2].setAttribute("onclick", "txnReorder()");
-
-  const manualSyncButton = document.querySelector("#panel-settings .btn-primary");
-  if (manualSyncButton) manualSyncButton.setAttribute("onclick", "manualSyncProducts()");
-
-  const reportFilterButtons = document.querySelectorAll("#panel-report .btn-outline");
-  if (reportFilterButtons[0]) reportFilterButtons[0].setAttribute("onclick", "reportSetToday()");
-  if (reportFilterButtons[1]) reportFilterButtons[1].setAttribute("onclick", "reportSetYesterday()");
-
-  const holdButtons = document.querySelectorAll(".cart-header .btn-outline");
-  if (holdButtons[0]) holdButtons[0].setAttribute("onclick", "openHoldModal()");
-  if (holdButtons[1]) holdButtons[1].setAttribute("onclick", "parkCurrentOrder()");
-
-  const cartReset = document.querySelector(".cart-reset");
-  if (cartReset) cartReset.setAttribute("onclick", "resetCart()");
-
-  const backToEditBtn = document.querySelector(".cart-panel .btn-back");
-  if (backToEditBtn) backToEditBtn.setAttribute("onclick", "backToEdit()");
-
-  if (btnNext) btnNext.setAttribute("onclick", "goToPayment()");
-
-  const holdToolbarButtons = document.querySelectorAll("#holdModal .btn-outline");
-  if (holdToolbarButtons[0]) holdToolbarButtons[0].setAttribute("onclick", "refreshHoldList()");
-  if (holdToolbarButtons[1]) holdToolbarButtons[1].setAttribute("onclick", "closeHoldModal()");
+  
