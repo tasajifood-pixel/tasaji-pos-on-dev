@@ -1605,12 +1605,24 @@ btnCari.onclick=()=>{ page=1; loadProducts(); };
 searchInput.addEventListener("keydown", async (e) => {
   if (e.key !== "Enter") return;
 
-  const barcode = searchInput.value.trim();
-  if (!barcode) return;
+  const val = searchInput.value.trim();
+  if (!val) return;
 
   e.preventDefault();
 
-  const product = await findProductByBarcode(barcode);
+  // 👉 heuristik barcode: angka & panjang
+  const looksLikeBarcode = /^\d{6,}$/.test(val);
+
+  if (!looksLikeBarcode) {
+    // 🔍 BUKAN BARCODE → SEARCH NAMA / KODE
+    currentQuery = val;
+    page = 1;
+    loadProducts();
+    return;
+  }
+
+  // 📦 BARCODE MODE
+  const product = await findProductByBarcode(val);
 
   if (product) {
     await addToCart(product);
