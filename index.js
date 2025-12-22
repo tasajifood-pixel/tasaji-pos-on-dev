@@ -2122,13 +2122,17 @@ function buildJubelioPayload(order, items) {
 }
 
 /* =====================================================
-   SAVE SALES ORDER (HEADER/ITEMS/PAYMENTS)
+   SAVE SALES ORDER (HEADER / ITEMS / PAYMENTS)
 ===================================================== */
+
 // ✅ pastikan setiap item di cart punya itemId (anti NaN -> null)
 async function hydrateCartItemIds(){
   for (const item of cart) {
-    // kalau sudah valid, skip
-    if (item.itemId !== undefined && item.itemId !== null && !Number.isNaN(Number(item.itemId))) continue;
+    if (
+      item.itemId !== undefined &&
+      item.itemId !== null &&
+      !Number.isNaN(Number(item.itemId))
+    ) continue;
 
     const code = item.itemCode || item.code;
     if (!code) continue;
@@ -2151,37 +2155,62 @@ async function hydrateCartItemIds(){
   saveOrderState();
 }
 
-// ⛔ HARD GUARD – TIDAK BOLEH LANJUT TANPA KASIR
-if (!CASHIER_ID || !CASHIER_NAME) {
-  alert("Identitas kasir tidak valid. Silakan login ulang.");
-  throw new Error("CASHIER_NOT_SET");
-}
 
-cashier_id: CASHIER_ID,
-cashier_name: CASHIER_NAME,
+/**
+ * Simpan sales order ke server
+ */
+async function saveSalesOrder(){
+  // ⛔ HARD GUARD – TIDAK BOLEH LANJUT TANPA KASIR
+  if (!CASHIER_ID || !CASHIER_NAME) {
+    alert("Identitas kasir tidak valid. Silakan login ulang.");
+    throw new Error("CASHIER_NOT_SET");
+  }
 
+  // pastikan cart item valid
+  await hydrateCartItemIds();
 
   const payload = {
-
+    // =====================
+    // IDENTITAS TRANSAKSI
+    // =====================
     salesorder_no: CURRENT_SALESORDER_NO,
-	cashier_id: CASHIER_ID || "UNKNOWN",
-	cashier_name: CASHIER_NAME || "UNKNOWN",
+
+    cashier_id: CASHIER_ID,
+    cashier_name: CASHIER_NAME,
+
+    // =====================
+    // CUSTOMER
+    // =====================
     contact_id: ACTIVE_CUSTOMER?.contact_id ?? -1,
     customer_name: ACTIVE_CUSTOMER?.contact_name ?? "Pelanggan Umum",
     shipping_phone: ACTIVE_CUSTOMER?.phone ?? null,
+
+    // =====================
+    // TOTAL & WAKTU
+    // =====================
     transaction_date: new Date().toISOString(),
     sub_total: calcTotal(),
     grand_total: calcTotal(),
+
+    // =====================
+    // PEMBAYARAN
+    // =====================
     payment_method: PAYMENT_LINES.map(p => p.label).join(", "),
-    location_id: -1,
-    store_id: -100,
     is_paid: true,
 
-// ✅ status sync Jubelio (queue)
-jubelio_synced: false,
-jubelio_synced_at: null,
-jubelio_error: null,
-jubelio_payload: null
+    // =====================
+    // METADATA
+    // =====================
+    location_id: -1,
+    store_id: -100,
+
+    // =====================
+    // STATUS SYNC JUBELIO
+    // =====================
+    jubelio_synced: false,
+    jubelio_synced_at: null,
+    jubelio_error: null,
+    jubelio_payload: null
   };
 
   const { data, error } = await sb
