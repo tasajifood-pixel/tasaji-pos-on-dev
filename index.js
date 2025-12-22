@@ -33,15 +33,7 @@ const sb = window.supabase.createClient(
 /* =====================================================
    DOM REFS
 ===================================================== */
-/* =====================================================
-   MAIN PANELS (SSOT)
-===================================================== */
-const panelProduct       = document.getElementById("panel-product");
-const panelPayment       = document.getElementById("panel-payment");
-const panelTransactions  = document.getElementById("panel-transactions");
-const panelSettings      = document.getElementById("panel-settings");
 const panelReport = document.getElementById("panel-report");
-
 
 const productGrid = document.getElementById("productGrid");
 const pageInfo = document.getElementById("pageInfo");
@@ -56,6 +48,12 @@ const itemCount = document.getElementById("itemCount");
 const cartSubtotal = document.getElementById("cartSubtotal");
 const cartTotal = document.getElementById("cartTotal");
 const cartPanel = document.querySelector(".cart-panel");
+
+
+const panelProduct = document.getElementById("panel-product");
+const panelPayment = document.getElementById("panel-payment");
+const panelTransactions = document.getElementById("panel-transactions");
+const panelSettings = document.getElementById("panel-settings");
 
 const quickCash = document.getElementById("quickCash");
 
@@ -94,11 +92,7 @@ const setAutoSyncHours = document.getElementById("setAutoSyncHours");
 
 
 /* event input cash */
-if (cashInput) {
-  cashInput.addEventListener("input", onCashInputChange);
-}
-
-
+cashInput.addEventListener("input", onCashInputChange);
 // customer autocomplete
 if (customerInput) {
   customerInput.addEventListener("input", searchCustomer);
@@ -155,9 +149,7 @@ let REPORT_UI_BOUND = false;
 // kasir/terminal (tanpa login)
 let CASHIER_ID = null;
 let CASHIER_NAME = null;
-let CASHIER_CODE = null; // ✅ OPTIONAL (UI only)
 let AUTO_SYNC_HOURS = 3; // default
-
 
 function loadCashier(){
   // SSOT kasir (UNTUK DATA & FILTER)
@@ -597,15 +589,14 @@ CURRENT_HOLD_ID = h.id; // ✅ tandai sedang buka hold ini
   }
 
   // balik ke penjualan
-  if (panelPayment) {
+  switchLeftTab("sales");
   panelPayment.style.display = "none";
-  panelPayment.dataset.active = "0";
+  panelProduct.style.display = "flex";
+  btnNext.style.display = "block";
+
+  updateSwitchCashierButton();
+  closeHoldModal();
 }
-
-if (panelProduct) panelProduct.style.display = "flex";
-if (btnNext) btnNext.style.display = "block";
-} // ← INI WAJIB (penutup resumeHold)
-
 
 function deleteHold(id){
   if(!confirm("Hapus transaksi tersimpan ini?")) return;
@@ -718,132 +709,88 @@ if (sNote2 !== null) STORE_NOTE_2 = sNote2;
 
   if (sShift !== null) applyShiftX(sShift);
 
- // sync UI settings panel
-if (typeof RECEIPT_PAPER !== "undefined" && setReceiptPaper) {
+  // sync UI settings panel
   setReceiptPaper.value = RECEIPT_PAPER;
-}
-
-if (setStoreName) setStoreName.value = STORE_NAME || "";
-if (setStoreSub) setStoreSub.value = STORE_SUB || "";
-if (setShiftX) setShiftX.value = (sShift !== null) ? sShift : 0;
-if (setNote1) setNote1.value = STORE_NOTE_1 || "";
+  setStoreName.value = STORE_NAME;
+  setStoreSub.value = STORE_SUB;
+  setShiftX.value = (sShift !== null) ? sShift : 0;
+  if (setNote1) setNote1.value = STORE_NOTE_1 || "";
 if (setNote2) setNote2.value = STORE_NOTE_2 || "";
-
 const sAutoSync = localStorage.getItem("setting_autoSyncHours");
 if (sAutoSync) AUTO_SYNC_HOURS = Number(sAutoSync) || 3;
 
-const setAutoSyncHours = document.getElementById("setAutoSyncHours");
+const setAuto = document.getElementById("setAutoSyncHours");
 if (setAutoSyncHours) setAutoSyncHours.value = AUTO_SYNC_HOURS;
 
 }
 
 function bindSettingsEvents(){
 
-  if (setShiftX) {
-    setShiftX.addEventListener("input", () => {
-      const v = Number(setShiftX.value || 0);
-      localStorage.setItem("setting_shiftX", String(v));
-      applyShiftX(v);
-    });
-  }
+  setHideEmpty.addEventListener("change", () => {
+    filters.hideEmpty = setHideEmpty.checked;
+    localStorage.setItem("filterHideEmpty", filters.hideEmpty ? "1" : "0");
+    page = 1;
+    loadProducts();
+  });
 
-  if (setRequireStock) {
-    setRequireStock.addEventListener("change", () => {
-      filters.requireStock = setRequireStock.checked;
-      localStorage.setItem(
-        "filterRequireStock",
-        filters.requireStock ? "1" : "0"
-      );
-      page = 1;
-      loadProducts();
-    });
-  }
+  setHideKtn.addEventListener("change", () => {
+    filters.hideKtn = setHideKtn.checked;
+    localStorage.setItem("filterHideKtn", filters.hideKtn ? "1" : "0");
+    page = 1;
+    loadProducts();
+  });
 
-  if (setHideEmpty) {
-    setHideEmpty.addEventListener("change", () => {
-      filters.hideEmpty = setHideEmpty.checked;
-      localStorage.setItem(
-        "filterHideEmpty",
-        filters.hideEmpty ? "1" : "0"
-      );
-      page = 1;
-      loadProducts();
-    });
-  }
+  setReceiptPaper.addEventListener("change", () => {
+    RECEIPT_PAPER = setReceiptPaper.value;
+    localStorage.setItem("setting_receiptPaper", RECEIPT_PAPER);
+  });
 
-  if (setHideKtn) {
-    setHideKtn.addEventListener("change", () => {
-      filters.hideKtn = setHideKtn.checked;
-      localStorage.setItem(
-        "filterHideKtn",
-        filters.hideKtn ? "1" : "0"
-      );
-      page = 1;
-      loadProducts();
-    });
-  }
+  setStoreName.addEventListener("input", () => {
+    STORE_NAME = setStoreName.value || "TASAJI FOOD";
+    localStorage.setItem("setting_storeName", STORE_NAME);
+  });
 
-  if (setReceiptPaper) {
-    setReceiptPaper.addEventListener("change", () => {
-      RECEIPT_PAPER = setReceiptPaper.value;
-      localStorage.setItem(
-        "setting_receiptPaper",
-        RECEIPT_PAPER
-      );
-    });
-  }
-
-  if (setStoreName) {
-    setStoreName.addEventListener("input", () => {
-      STORE_NAME = setStoreName.value;
-      localStorage.setItem(
-        "setting_storeName",
-        STORE_NAME
-      );
-    });
-  }
-
-  if (setStoreSub) {
-    setStoreSub.addEventListener("input", () => {
-      STORE_SUB = setStoreSub.value;
-      localStorage.setItem(
-        "setting_storeSub",
-        STORE_SUB
-      );
-    });
-  }
-
-  if (setNote1) {
-    setNote1.addEventListener("input", () => {
-      STORE_NOTE_1 = setNote1.value;
-      localStorage.setItem(
-        "setting_storeNote1",
-        STORE_NOTE_1
-      );
-    });
-  }
-
-  if (setNote2) {
-    setNote2.addEventListener("input", () => {
-      STORE_NOTE_2 = setNote2.value;
-      localStorage.setItem(
-        "setting_storeNote2",
-        STORE_NOTE_2
-      );
-    });
-  }
-
-  if (setAutoSyncHours) {
-    setAutoSyncHours.addEventListener("change", () => {
-      AUTO_SYNC_HOURS = Number(setAutoSyncHours.value) || 3;
-      localStorage.setItem(
-        "setting_autoSyncHours",
-        AUTO_SYNC_HOURS
-      );
-    });
-  }
+  setStoreSub.addEventListener("input", () => {
+    STORE_SUB = setStoreSub.value || "Jalan Mandor Demong";
+    localStorage.setItem("setting_storeSub", STORE_SUB);
+  });
+if (setNote1) {
+  setNote1.addEventListener("input", () => {
+    STORE_NOTE_1 = setNote1.value || "";
+    localStorage.setItem("setting_storeNote1", STORE_NOTE_1);
+  });
 }
 
+if (setNote2) {
+  setNote2.addEventListener("input", () => {
+    STORE_NOTE_2 = setNote2.value || "";
+    localStorage.setItem("setting_storeNote2", STORE_NOTE_2);
+  });
+}
+const setAuto = document.getElementById("setAutoSyncHours");
+if (setAutoSyncHours) {
+  setAutoSyncHours.addEventListener("input", () => {
+    const v = Math.max(1, Number(setAutoSyncHours.value || 1));
+    AUTO_SYNC_HOURS = v;
+    localStorage.setItem("setting_autoSyncHours", String(v));
+  });
+}
+
+
+  setShiftX.addEventListener("input", () => {
+    const v = Number(setShiftX.value || 0);
+    localStorage.setItem("setting_shiftX", String(v));
+    applyShiftX(v);
+  });
+
+  setRequireStock.addEventListener("change", () => {
+    filters.requireStock = setRequireStock.checked;
+    localStorage.setItem("filterRequireStock", filters.requireStock ? "1" : "0");
+    page = 1;
+    loadProducts();
+  });
+
+}
 
 function loadFilterSettings(){
   const savedHideEmpty = localStorage.getItem("filterHideEmpty");
@@ -881,25 +828,25 @@ function setActiveTabBtn(key){
 
 function showLeftPanel(panelKey){
   // sembunyikan semua panel kiri
-  if (panelProduct) panelProduct.style.display = "none";
-  if (panelPayment) panelPayment.style.display = "none";
-  if (panelTransactions) panelTransactions.style.display = "none";
-  if (panelSettings) panelSettings.style.display = "none";
+  panelProduct.style.display = "none";
+  panelPayment.style.display = "none";
+  panelTransactions.style.display = "none";
+  panelSettings.style.display = "none";
 
   if(panelKey === "sales"){
     // kalau lagi payment, tetap payment (biar gak bingung)
    if(panelKey === "sales"){
   const isPaying = (document.getElementById("panel-payment")?.dataset?.active === "1");
-  if (isPaying && panelPayment) panelPayment.style.display = "block";
-  else if (panelProduct) panelProduct.style.display = "flex";
+  if (isPaying) panelPayment.style.display = "block";
+  else panelProduct.style.display = "flex";
 }
 
   }
   if(panelKey === "txn"){
-    if (panelTransactions) panelTransactions.style.display = "flex";
+    panelTransactions.style.display = "flex";
   }
   if(panelKey === "set"){
-    if (panelSettings) panelSettings.style.display = "flex";
+    panelSettings.style.display = "flex";
   }
 }
 
@@ -907,21 +854,21 @@ function switchLeftTab(key){
   setActiveTabBtn(key);
 
   // SEMBUNYIKAN SEMUA PANEL KIRI (WAJIB)
-  if (panelProduct) panelProduct.style.display = "none";
-  if (panelPayment) panelPayment.style.display = "none";
-  if (panelTransactions) panelTransactions.style.display = "none";
-  if (panelSettings) panelSettings.style.display = "none";
-  if (panelReport) panelReport.style.display = "none";
+  panelProduct.style.display = "none";
+  panelPayment.style.display = "none";
+  panelTransactions.style.display = "none";
+  panelSettings.style.display = "none";
+  panelReport.style.display = "none";
 
   
 
 
   if (key === "sales") {
-    if (panelProduct) panelProduct.style.display = "flex";
+    panelProduct.style.display = "flex";
     if (cartPanel) cartPanel.style.display = "flex";
   }
 if (key === "txn") {
-  if (panelTransactions) panelTransactions.style.display = "flex";
+  panelTransactions.style.display = "flex";
   if (cartPanel) cartPanel.style.display = "none";
   initTxnFilterUI();
   loadTransactions(true);
@@ -929,11 +876,11 @@ if (key === "txn") {
 
 
   if (key === "set") {
-  if (panelSettings) panelSettings.style.display = "flex";
+  panelSettings.style.display = "flex";
   if (cartPanel) cartPanel.style.display = "none";
 }
 if (key === "report") {
-  if (panelReport) panelReport.style.display = "flex";
+  panelReport.style.display = "flex";
   if (cartPanel) cartPanel.style.display = "none";
   initReportUI();
   loadReport();
@@ -1527,12 +1474,10 @@ const dropdown = customerDropdown || document.getElementById("customerDropdown")
 
   recalcPaymentStatus();
 
-  if (panelPayment) {
-    panelPayment.style.display = "none";
-    panelPayment.dataset.active = "0";
-  }
-  if (panelProduct) panelProduct.style.display = "flex";
-  if (btnNext) btnNext.style.display = "block";
+  panelPayment.style.display = "none";
+  panelProduct.style.display = "flex";
+  btnNext.style.display = "block";
+  panelPayment.dataset.active = "0";
 
 }
 
@@ -1546,35 +1491,28 @@ function calcItemCount(){
 }
 
 function renderCart(){
-
-  // ⛔ GUARD DOM UTAMA
-  if (!cartItems) {
-    console.warn("renderCart skipped: cartItems not found");
-    return;
-  }
-
-  cartItems.innerHTML = "";
-
+  cartItems.innerHTML="";
   const total = calcTotal();
   const count = calcItemCount();
 
-  if (!cart.length) {
-    cartItems.innerHTML = `
-      <div style="
-        padding:12px;
-        color:#999;
-        font-size:13px;
-        text-align:center;
-      ">
-        Belum ada item di transaksi
-      </div>
-    `;
-  }
+  if(!cart.length){
+  cartItems.innerHTML = `
+    <div style="
+      padding:12px;
+      color:#999;
+      font-size:13px;
+      text-align:center;
+    ">
+      Belum ada item di transaksi
+    </div>
+  `;
+}
 
-  cart.forEach(i => {
-    const el = document.createElement("div");
-    el.className = "cart-item";
-    el.innerHTML = `
+
+  cart.forEach(i=>{
+    const el=document.createElement("div");
+    el.className="cart-item";
+    el.innerHTML=`
       <div class="cart-item-price">${formatRupiah(i.price)}</div>
       <div class="cart-item-name">${i.name}</div>
       <div class="cart-item-code">${i.code}</div>
@@ -1589,17 +1527,11 @@ function renderCart(){
     cartItems.appendChild(el);
   });
 
-  // ✅ UPDATE TOTALS (GUARDED)
-  if (itemCount) itemCount.textContent = count;
-  if (cartSubtotal) cartSubtotal.textContent = formatRupiah(total);
-  if (cartTotal) cartTotal.textContent = formatRupiah(total);
-
-  // OPTIONAL
-  if (typeof updateSwitchCashierButton === "function") {
-    updateSwitchCashierButton();
-  }
+  itemCount.textContent=count;
+  cartSubtotal.textContent=formatRupiah(total);
+  cartTotal.textContent=formatRupiah(total);
+  updateSwitchCashierButton(); // ✅ tambah ini
 }
-
 
 /* =====================================================
    CUSTOMER AUTOCOMPLETE
@@ -1705,13 +1637,18 @@ searchInput.addEventListener("keydown", async (e) => {
   }
 });
 
+
+/* =====================================================
+   PAGE SWITCH: CASHIER <-> PAYMENT
+===================================================== */
+// ===== PAYMENT =====
 async function goToPayment() {
   if (!cart.length) {
     alert("Belum ada item di keranjang");
     return;
   }
 
-  // ✅ nomor order: online pakai server, offline pakai local
+    // ✅ nomor order: online pakai server, offline pakai local
   if (!CURRENT_SALESORDER_NO && !CURRENT_LOCAL_ORDER_NO) {
     if (isOnline()) {
       CURRENT_ORDER_MODE = "online";
@@ -1724,37 +1661,36 @@ async function goToPayment() {
     saveOrderState();
   }
 
+
   // pastikan tab kiri tetap "sales"
   setActiveTabBtn("sales");
 
-  if (panelProduct) panelProduct.style.display = "none";
-  if (panelPayment) {
-    panelPayment.style.display = "block";
-    panelPayment.dataset.active = "1";
-  }
-  if (panelTransactions) panelTransactions.style.display = "none";
-  if (panelSettings) panelSettings.style.display = "none";
-  if (btnNext) btnNext.style.display = "none";
+  panelProduct.style.display = "none";
+  panelPayment.style.display = "block";
+  panelPayment.dataset.active = "1";
+  panelTransactions.style.display = "none";
+  panelSettings.style.display = "none";
+  btnNext.style.display = "none";
 
-  if (payTotal) payTotal.textContent = formatRupiah(calcTotal());
-  if (payItemCount) payItemCount.textContent = calcItemCount();
+  payTotal.textContent = formatRupiah(calcTotal());
+  payItemCount.textContent = calcItemCount();
 
   selectedPaymentMethod = null;
-  document.querySelectorAll(".pay-method-btn")
-    .forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".pay-method-btn").forEach(b => b.classList.remove("active"));
 
-  if (cashInput) {
-    cashInput.disabled = false;
-    cashInput.readOnly = false;
-    cashInput.value = "";
-  }
-  if (changeOutput) changeOutput.textContent = formatRupiah(0);
+  cashInput.disabled = false;
+  cashInput.readOnly = false;
+  cashInput.value = "";
+  changeOutput.textContent = formatRupiah(0);
+
   if (quickCash) quickCash.style.display = "none";
 
   PAYMENT_LINES = [];
+  cashInput.value = "";
+  changeOutput.textContent = formatRupiah(0);
+
   recalcPaymentStatus();
 }
-
 
 function methodLabel(method){
   const map = {
@@ -1826,7 +1762,7 @@ function recalcPaymentStatus(){
 
   const hasCash = PAYMENT_LINES.some(x => x.method === "cash");
   const change = (hasCash && paid > total) ? (paid - total) : 0;
-  if (changeOutput) changeOutput.textContent = formatRupiah(change);
+  changeOutput.textContent = formatRupiah(change);
 
   const isLunas = rem <= 0 && PAYMENT_LINES.length > 0;
 
@@ -1910,10 +1846,8 @@ function removePayLine(idx){
   recalcPaymentStatus();
 }
 
-const payMethodBtns = document.querySelectorAll(".pay-method-btn");
-if (payMethodBtns.length) {
-  payMethodBtns.forEach(btn => {
-    btn.addEventListener("click", () => {
+document.querySelectorAll(".pay-method-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
     document.querySelectorAll(".pay-method-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     selectedPaymentMethod = btn.dataset.method;
@@ -1922,7 +1856,7 @@ if (payMethodBtns.length) {
       cashInput.disabled = false;
       cashInput.readOnly = false;
       cashInput.value = "";
-      if (changeOutput) changeOutput.textContent = formatRupiah(0);
+      changeOutput.textContent = formatRupiah(0);
       cashInput.focus();
 
       if (quickCash) quickCash.style.display = "flex";
@@ -1930,7 +1864,7 @@ if (payMethodBtns.length) {
       cashInput.disabled = true;
       cashInput.readOnly = true;
       cashInput.value = "";
-      if (changeOutput) changeOutput.textContent = formatRupiah(0);
+      changeOutput.textContent = formatRupiah(0);
 
       if (quickCash) quickCash.style.display = "none";
       addNonCashLine(selectedPaymentMethod);
@@ -1939,8 +1873,6 @@ if (payMethodBtns.length) {
     recalcPaymentStatus();
   });
 });
-
-}
 
 async function processPayment() {
   // ==============================
@@ -2049,12 +1981,10 @@ resetAll();
 
 function backToEdit() {
   setActiveTabBtn("sales");
-  if (panelPayment) {
-    panelPayment.style.display = "none";
-    panelPayment.dataset.active = "0";
-  }
-  if (panelProduct) panelProduct.style.display = "flex";
-  if (btnNext) btnNext.style.display = "block";
+  panelPayment.style.display = "none";
+  panelProduct.style.display = "flex";
+  btnNext.style.display = "block";
+  panelPayment.dataset.active = "0";
 
 }
 
@@ -3147,9 +3077,9 @@ cart = items.map(i => ({
 
   // balik ke penjualan
   switchLeftTab("sales");
-  if (panelPayment) panelPayment.style.display = "none";
-  if (panelProduct) panelProduct.style.display = "flex";
-  if (btnNext) btnNext.style.display = "block";
+  panelPayment.style.display = "none";
+  panelProduct.style.display = "flex";
+  btnNext.style.display = "block";
 }
 function applyProductViewMode(){
   const grid = document.getElementById("productGrid");
@@ -3241,154 +3171,6 @@ function bindBestPeriodButtons(){
     });
   });
 }
-/* =====================================================
-   UI EVENTS (SSOT)
-===================================================== */
-function bindUIEvents(){
-  // tab kiri
-  const tabSales  = document.getElementById("tabSales");
-  const tabTxn    = document.getElementById("tabTxn");
-  const tabSet    = document.getElementById("tabSet");
-  const tabReport = document.getElementById("tabReport");
-  const tabPrice  = document.getElementById("tabPrice");
-
-  tabSales?.addEventListener("click", () => switchLeftTab("sales"));
-  tabTxn?.addEventListener("click", () => switchLeftTab("txn"));
-  tabSet?.addEventListener("click", () => switchLeftTab("set"));
-  tabReport?.addEventListener("click", () => switchLeftTab("report"));
-  tabPrice?.addEventListener("click", openPriceCheck);
-
-  // logout
-  const logoutBtn = document.querySelector(".logout-btn");
-  logoutBtn?.addEventListener("click", logout);
-
-  // search produk
-  searchInput?.addEventListener("input", () => {
-    currentQuery = (searchInput.value || "").trim();
-    page = 1;
-    loadProducts();
-  });
-
-  btnCari?.addEventListener("click", () => {
-    page = 1;
-    loadProducts();
-  });
-
-  // pagination produk
-  prevPage?.addEventListener("click", () => {
-    if (page <= 1) return;
-    page--;
-    loadProducts();
-  });
-
-  nextPage?.addEventListener("click", () => {
-    page++;
-    loadProducts();
-  });
-
-  // barcode enter
-  searchInput?.addEventListener("keydown", async (e) => {
-    if (e.key !== "Enter") return;
-
-    const barcode = (searchInput.value || "").trim();
-    if (!barcode) return;
-
-    e.preventDefault();
-
-    const product = await findProductByBarcode(barcode);
-    if (product) {
-      await addToCart(product);
-      searchInput.value = "";
-      currentQuery = "";
-      page = 1;
-      loadProducts();
-    } else {
-      alert("Produk dengan barcode tersebut tidak ditemukan / stok habis");
-    }
-  });
-
-  // tombol transaksi -> bayar & balik
-  btnNext?.addEventListener("click", goToPayment);
-  const backToEditBtn = document.querySelector(".cart-panel .btn-back");
-  backToEditBtn?.addEventListener("click", backToEdit);
-
-  // reset cart
-  const cartReset = document.querySelector(".cart-reset");
-  cartReset?.addEventListener("click", resetCart);
-
-  // hold modal buttons (toolbar)
-  const holdToolbarButtons = document.querySelectorAll("#holdModal .btn-outline");
-  holdToolbarButtons?.[0]?.addEventListener("click", refreshHoldList);
-  holdToolbarButtons?.[1]?.addEventListener("click", closeHoldModal);
-
-  // hold buttons di cart header
-  const holdButtons = document.querySelectorAll(".cart-header .btn-outline");
-  holdButtons?.[0]?.addEventListener("click", openHoldModal);
-  holdButtons?.[1]?.addEventListener("click", parkCurrentOrder);
-
-  // quick cash buttons
-  const quickCashButtons = document.querySelectorAll("#quickCash .btn");
-  quickCashButtons?.[0]?.addEventListener("click", () => setCash(calcTotal()));
-  quickCashButtons?.[1]?.addEventListener("click", () => setCash(50000));
-  quickCashButtons?.[2]?.addEventListener("click", () => setCash(100000));
-
-  // finish payment
-  btnFinishPayment?.addEventListener("click", processPayment);
-
-  // txn filters (today/yesterday)
-  const txnFilterButtons = document.querySelectorAll("#panel-transactions .txn-filter .btn-outline");
-  txnFilterButtons?.[0]?.addEventListener("click", txnSetToday);
-  txnFilterButtons?.[1]?.addEventListener("click", txnSetYesterday);
-
-  // txn search button
-  const txnSearchButtons = document.querySelectorAll("#panel-transactions .txn-toolbar button.btn");
-  txnSearchButtons?.forEach(b => b.addEventListener("click", () => loadTransactions(true)));
-
-  // txn paging buttons
-  const txnPagingButtons = document.querySelectorAll("#panel-transactions .txn-list button.btn");
-  txnPagingButtons?.[0]?.addEventListener("click", txnPrevPage);
-  txnPagingButtons?.[1]?.addEventListener("click", txnNextPage);
-
-  // txn detail actions (reprint, sync, reorder) -> aman: attach by id/class kalau ada
-  const txnActions = document.querySelectorAll("#txnDetailActions button");
-  txnActions?.[0]?.addEventListener("click", txnReprint);
-  txnActions?.[1]?.addEventListener("click", txnSyncJubelio);
-  txnActions?.[2]?.addEventListener("click", txnReorder);
-
-  // manual sync products
-  const manualSyncButton = document.querySelector("#panel-settings .btn-primary");
-  manualSyncButton?.addEventListener("click", manualSyncProducts);
-
-  // report filters
-  const reportFilterButtons = document.querySelectorAll("#panel-report .btn-outline");
-  reportFilterButtons?.[0]?.addEventListener("click", reportSetToday);
-  reportFilterButtons?.[1]?.addEventListener("click", reportSetYesterday);
-
-  // receipt modal close
-  const receiptModal = document.getElementById("receiptModal");
-  receiptModal?.addEventListener("click", () => { receiptModal.style.display = "none"; });
-}
-function updateCashierInfo(){
-  const el = document.getElementById("cashierInfo");
-  if (!el) return;
-
-  const name = CASHIER_NAME || "";
-  if (!name) {
-    el.textContent = "";
-    return;
-  }
-
-  el.textContent = `Kasir: ${name}`;
-}
-function updateTxnHead(){
-  const titleEl = document.getElementById("txnHeadTitle");
-  if (!titleEl) return;
-
-  const name = CASHIER_NAME || "";
-  titleEl.textContent = name
-    ? `Daftar Transaksi — ${name}`
-    : "Daftar Transaksi";
-}
 
 /* =====================================================
    INIT
@@ -3397,21 +3179,12 @@ function updateTxnHead(){
 (async () => {
 
   // 1️⃣ load kasir dulu
-    loadCashier();
-
-  // ⛔ SSOT GUARD: wajib ada kasir dari login
-  if (!CASHIER_ID || !CASHIER_NAME) {
-    alert("Kasir belum terdeteksi. Silakan login ulang.");
-    window.location.replace("login.html");
-    return;
-  }
-
+  loadCashier();
   updateCashierInfo();
   updateTxnHead();
 
- // ✅ bind UI events setelah kasir & DOM siap
-bindUIEvents();
-
+  // 2️⃣ cek apakah perlu tampil welcome
+  checkCashier();
 
   // 3️⃣ settings
   loadSettings();
@@ -3482,6 +3255,111 @@ if (isOnline()) {
 
 })();
 
+
+// ==============================
+// WELCOME SCREEN LOGIC
+// ==============================
+
+/**
+ * Pilih kasir (UI ONLY)
+ * SSOT kasir tetap dari LOGIN
+ */
+function selectCashier(code){
+  // simpan kode kasir hanya untuk UI
+  localStorage.setItem("pos_cashier_code", code);
+
+  // pastikan variabel global terisi dari SSOT
+  loadCashier();
+
+  updateCashierInfo();
+  updateTxnHead();
+  resetTransactionUI();
+
+  document.getElementById("welcomeScreen").style.display = "none";
+}
+
+/**
+ * Cek apakah kasir sudah ada
+ * Dipanggil saat app load
+ */
+function checkCashier(){
+  loadCashier(); // ✅ SSOT
+
+  if (!CASHIER_ID || !CASHIER_NAME) {
+    document.getElementById("welcomeScreen").style.display = "flex";
+    return;
+  }
+
+  document.getElementById("welcomeScreen").style.display = "none";
+}
+
+/**
+ * Reset / ganti kasir
+ */
+function resetCashier(){
+  // ❌ tidak boleh ganti kasir saat transaksi aktif
+  if (isOrderActive()){
+    alert(
+      "Tidak bisa ganti kasir saat ada transaksi aktif.\n" +
+      "Selesaikan transaksi atau klik Reset dulu."
+    );
+    return;
+  }
+
+  if (!confirm("Ganti kasir? Transaksi berjalan akan tetap aman.")) return;
+
+  // hapus identitas kasir
+  localStorage.removeItem("pos_active_cashier_id");
+  localStorage.removeItem("pos_active_cashier_name");
+  localStorage.removeItem("pos_cashier_code");
+
+  CASHIER_ID = null;
+  CASHIER_NAME = null;
+
+  updateCashierInfo();
+  updateTxnHead();
+  resetTransactionUI();
+
+  document.getElementById("welcomeScreen").style.display = "flex";
+}
+
+/**
+ * Update judul daftar transaksi
+ */
+function updateTxnHead(){
+  const titleEl = document.getElementById("txnHeadTitle");
+  if (!titleEl) return;
+
+  const name = CASHIER_NAME;
+  const code = localStorage.getItem("pos_cashier_code");
+
+  titleEl.textContent = name
+    ? (code
+        ? `Daftar Transaksi — ${name} (${code})`
+        : `Daftar Transaksi — ${name}`)
+    : "Daftar Transaksi";
+}
+
+/**
+ * Update info kasir di header POS
+ */
+function updateCashierInfo(){
+  const el = document.getElementById("cashierInfo");
+  if (!el) return;
+
+  const name = CASHIER_NAME;
+  const code = localStorage.getItem("pos_cashier_code");
+
+  if (!name) {
+    el.textContent = "";
+    return;
+  }
+
+  el.textContent = code
+    ? `Kasir: ${name} (${code})`
+    : `Kasir: ${name}`;
+}
+
 // ==============================
 // NETWORK EVENT
 // ==============================
@@ -3542,8 +3420,6 @@ function initReportUI(){
   const mm = String(today.getMonth()+1).padStart(2,"0");
   const dd = String(today.getDate()).padStart(2,"0");
   const todayStr = `${yyyy}-${mm}-${dd}`;
-
-
 
   if (fromEl && !fromEl.value) fromEl.value = todayStr;
   if (toEl && !toEl.value)   toEl.value   = todayStr;
@@ -3940,4 +3816,84 @@ Object.entries(appliedObj).forEach(([k, amt]) => {
   //  }
   }
 }
-  
+
+  const cashierButtons = document.querySelectorAll("#welcomeScreen .btn-cashier");
+  const cashierHandlers = [
+    "selectCashier('KSR-01','Rifqi')",
+    "selectCashier('KSR-02','Inan')",
+    "selectCashier('KSR-03','Imad')",
+    "selectCashier('KSR-04','Ahmad')"
+  ];
+  cashierButtons.forEach((btn, idx) => {
+    const handler = cashierHandlers[idx];
+    if (handler) btn.setAttribute("onclick", handler);
+  });
+
+  const btnSwitchCashier = document.getElementById("btnSwitchCashier");
+  if (btnSwitchCashier) btnSwitchCashier.setAttribute("onclick", "resetCashier()");
+
+  const tabSales = document.getElementById("tabSales");
+  if (tabSales) tabSales.setAttribute("onclick", "switchLeftTab(\'sales\')");
+  const tabTxn = document.getElementById("tabTxn");
+  if (tabTxn) tabTxn.setAttribute("onclick", "switchLeftTab(\'txn\')");
+  const tabSet = document.getElementById("tabSet");
+  if (tabSet) tabSet.setAttribute("onclick", "switchLeftTab(\'set\')");
+  const tabPrice = document.getElementById("tabPrice");
+  if (tabPrice) tabPrice.setAttribute("onclick", "openPriceCheck()");
+  const tabReport = document.getElementById("tabReport");
+  if (tabReport) tabReport.setAttribute("onclick", "switchLeftTab(\'report\')");
+
+  const logoutBtn = document.querySelector(".logout-btn");
+  if (logoutBtn) logoutBtn.setAttribute("onclick", "logout()");
+
+  const quickCashButtons = document.querySelectorAll("#quickCash .btn");
+  const quickCashHandlers = [
+    "setCash(calcTotal())",
+    "setCash(50000)",
+    "setCash(100000)"
+  ];
+  quickCashButtons.forEach((btn, idx) => {
+    const handler = quickCashHandlers[idx];
+    if (handler) btn.setAttribute("onclick", handler);
+  });
+	
+  if (btnFinishPayment) btnFinishPayment.setAttribute("onclick", "processPayment()");
+
+  const txnFilterButtons = document.querySelectorAll("#panel-transactions .txn-filter .btn-outline");
+  if (txnFilterButtons[0]) txnFilterButtons[0].setAttribute("onclick", "txnSetToday()");
+  if (txnFilterButtons[1]) txnFilterButtons[1].setAttribute("onclick", "txnSetYesterday()");
+
+  const txnSearchButtons = document.querySelectorAll("#panel-transactions .txn-toolbar button.btn");
+  txnSearchButtons.forEach(btn => btn.setAttribute("onclick", "loadTransactions(true)"));
+
+  const txnPagingButtons = document.querySelectorAll("#panel-transactions .txn-list button.btn");
+  if (txnPagingButtons[0]) txnPagingButtons[0].setAttribute("onclick", "txnPrevPage()");
+  if (txnPagingButtons[1]) txnPagingButtons[1].setAttribute("onclick", "txnNextPage()");
+
+  const txnActions = document.querySelectorAll("#txnDetailActions button");
+  if (txnActions[0]) txnActions[0].setAttribute("onclick", "txnReprint()");
+  if (txnActions[1]) txnActions[1].setAttribute("onclick", "txnSyncJubelio()");
+  if (txnActions[2]) txnActions[2].setAttribute("onclick", "txnReorder()");
+
+  const manualSyncButton = document.querySelector("#panel-settings .btn-primary");
+  if (manualSyncButton) manualSyncButton.setAttribute("onclick", "manualSyncProducts()");
+
+  const reportFilterButtons = document.querySelectorAll("#panel-report .btn-outline");
+  if (reportFilterButtons[0]) reportFilterButtons[0].setAttribute("onclick", "reportSetToday()");
+  if (reportFilterButtons[1]) reportFilterButtons[1].setAttribute("onclick", "reportSetYesterday()");
+
+  const holdButtons = document.querySelectorAll(".cart-header .btn-outline");
+  if (holdButtons[0]) holdButtons[0].setAttribute("onclick", "openHoldModal()");
+  if (holdButtons[1]) holdButtons[1].setAttribute("onclick", "parkCurrentOrder()");
+
+  const cartReset = document.querySelector(".cart-reset");
+  if (cartReset) cartReset.setAttribute("onclick", "resetCart()");
+
+  const backToEditBtn = document.querySelector(".cart-panel .btn-back");
+  if (backToEditBtn) backToEditBtn.setAttribute("onclick", "backToEdit()");
+
+  if (btnNext) btnNext.setAttribute("onclick", "goToPayment()");
+
+  const holdToolbarButtons = document.querySelectorAll("#holdModal .btn-outline");
+  if (holdToolbarButtons[0]) holdToolbarButtons[0].setAttribute("onclick", "refreshHoldList()");
+  if (holdToolbarButtons[1]) holdToolbarButtons[1].setAttribute("onclick", "closeHoldModal()");
