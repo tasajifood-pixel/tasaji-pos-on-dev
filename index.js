@@ -1087,20 +1087,21 @@ if (filters.hideKtn)
   // ==========================
   // NON-BEST: normal range
   // ==========================
-  const { data, count, error } = await q.range(from,to);
-  if (error) { console.error("loadProducts error", error); return; }
+const { data, count, error } = await q.range(from,to);
+if (error) {
+  console.error("loadProducts error", error);
+  return;
+}
 
-  renderProducts(data||[]);
-  updatePagination(count||0);
+// 🔥 WAJIB: normalisasi stok
+const normalized = (data || []).map(p => ({
+  ...p,
+  available_qty: Number(p.stok_tersedia || 0)
+}));
 
-  if (error) {
-    console.error("loadProducts error", error);
-    return;
-  }
-  
+renderProducts(normalized);
+updatePagination(count || 0);
 
-  renderProducts(data||[]);
-  updatePagination(count||0);
 }
 
 
