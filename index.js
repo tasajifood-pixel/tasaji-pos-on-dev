@@ -1284,9 +1284,6 @@ if(!isOnline() || !supabaseOK){
     CUSTOMER_LIST = loadCustomerCache();
   }
 }
-// ==========================
-// BEST SELLER MAP (90 HARI)
-// ==========================
 // =====================
 // LOAD BEST SELLER MAP (FINAL)
 // SSOT: decision.mv_best_seller_ui
@@ -1295,32 +1292,19 @@ async function loadBestSellerMap() {
   // OFFLINE → tidak ada best seller
   if (!isOnline()) return {};
 
-  // pastikan period selalu ada & valid
-  const period = BEST_SELLER_PERIOD || "90d";
-
   try {
     const { data, error } = await sb
       .schema("decision")
-      .from("mv_best_seller_ui")              // ✅ schema explicit
-      .select("pcs_item_code, rank_no")       // ✅ kolom SSOT
-      .eq("period_key", period)
-      .lte("rank_no", 100);                   // ✅ optimasi UI
+      .from("mv_best_seller_ui")   // ✅ SSOT UI
+      .select("item_code, rank_no")
+      .eq("period_key", BEST_SELLER_PERIOD || "90d");
 
     if (error) throw error;
 
     const map = {};
-
     (data || []).forEach(r => {
-      const key = norm(r.pcs_item_code);
-      map[key] = Number(r.rank_no);
+      map[r.item_code] = Number(r.rank_no);
     });
-
-    console.log(
-      "✅ best seller loaded:",
-      Object.keys(map).length,
-      "items | period:",
-      period
-    );
 
     return map;
 
@@ -1329,6 +1313,7 @@ async function loadBestSellerMap() {
     return {};
   }
 }
+
 
 
 /* =====================================================
