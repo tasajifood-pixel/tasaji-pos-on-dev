@@ -1281,11 +1281,10 @@ if(!isOnline() || !supabaseOK){
 async function loadBestSellerMap() {
   if (!isOnline()) return {};
 
- const { data: allData, error } = await q;
-  .from("product_best_sellers")       // ✅ BENAR
-  .select("item_code, rank_no")
-  .eq("period_key", BEST_SELLER_PERIOD || "90d");
-
+  const { data, error } = await sb
+    .from("product_best_sellers")
+    .select("item_code, rank_no")
+    .eq("period_key", BEST_SELLER_PERIOD || "90d");
 
   if (error) {
     console.error("loadBestSellerMap error", error);
@@ -1299,7 +1298,6 @@ async function loadBestSellerMap() {
 
   return map;
 }
-
 
 
 /* =====================================================
