@@ -3262,9 +3262,6 @@ function selectCashier(code, name){
   loadProducts();
 
 
-}
-
-
 
 function checkCashier(){
   const id = localStorage.getItem("pos_active_cashier_id");
