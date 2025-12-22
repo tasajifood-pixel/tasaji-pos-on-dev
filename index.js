@@ -1031,7 +1031,11 @@ return;
     const { data: allData, error: e1 } = await q;
 
 
-    if (e1) { console.error("loadProducts error", e1); return; }
+  if (e1) {
+  console.error("loadProducts error", e1);
+  return;
+}
+
 
     const list = (allData || []).slice();
 
