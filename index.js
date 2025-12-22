@@ -14,9 +14,6 @@ function logout() {
   }
 }
 
-const supabaseScript = document.createElement("script");
-supabaseScript.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
-supabaseScript.onload = () => {
 /* =====================================================
    SUPABASE
 ===================================================== */
@@ -3773,5 +3770,3 @@ Object.entries(appliedObj).forEach(([k, amt]) => {
   const holdToolbarButtons = document.querySelectorAll("#holdModal .btn-outline");
   if (holdToolbarButtons[0]) holdToolbarButtons[0].setAttribute("onclick", "refreshHoldList()");
   if (holdToolbarButtons[1]) holdToolbarButtons[1].setAttribute("onclick", "closeHoldModal()");
-};
-document.head.appendChild(supabaseScript);
