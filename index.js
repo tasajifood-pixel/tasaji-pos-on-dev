@@ -633,7 +633,6 @@ async function findProductByBarcode(barcode) {
       item_code,
       item_name,
       thumbnail,
-      barcode,
       stok_tersedia
     `)
     .eq("barcode", barcode)
