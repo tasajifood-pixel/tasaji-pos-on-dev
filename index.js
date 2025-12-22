@@ -2151,13 +2151,15 @@ async function hydrateCartItemIds(){
   saveOrderState();
 }
 
-async function saveSalesOrderHeader() {
-  // ✅ kalau belum ada nomor, buat sekarang (anti error, anti reuse sisa localStorage)
-  if (!CURRENT_SALESORDER_NO) {
-    CURRENT_SALESORDER_NO = await generateSalesOrderNo();
-    updateOrderNumberUI();
-    saveOrderState();
-  }
+// ⛔ HARD GUARD – TIDAK BOLEH LANJUT TANPA KASIR
+if (!CASHIER_ID || !CASHIER_NAME) {
+  alert("Identitas kasir tidak valid. Silakan login ulang.");
+  throw new Error("CASHIER_NOT_SET");
+}
+
+cashier_id: CASHIER_ID,
+cashier_name: CASHIER_NAME,
+
 
   const payload = {
 
@@ -2478,8 +2480,8 @@ async function syncOfflineOrdersToServer(){
       // 2️⃣ simpan HEADER
       const headerPayload = {
         salesorder_no: salesorderNo,
-        cashier_id: off.cashier_id || "OFFLINE",
-        cashier_name: off.cashier_name || "OFFLINE",
+        cashier_id: off.cashier_id,
+		cashier_name: off.cashier_name,
         contact_id: off.customer?.contact_id ?? -1,
         customer_name: off.customer?.contact_name || "Pelanggan Umum",
         shipping_phone: off.customer?.phone || null,
@@ -3228,15 +3230,17 @@ if (isOnline()) {
 // ==============================
 // WELCOME SCREEN LOGIC
 // ==============================
-function selectCashier(code, name){
-  // ⛔ JANGAN UBAH SSOT KASIR
-  // CASHIER_ID & CASHIER_NAME HARUS TETAP dari login
 
-  // simpan KODE hanya untuk UI
+/**
+ * Pilih kasir (UI ONLY)
+ * SSOT kasir tetap dari LOGIN
+ */
+function selectCashier(code){
+  // simpan kode kasir hanya untuk UI
   localStorage.setItem("pos_cashier_code", code);
 
-  // pastikan name konsisten dengan login
-  CASHIER_NAME = localStorage.getItem("pos_active_cashier_name") || name;
+  // pastikan variabel global terisi dari SSOT
+  loadCashier();
 
   updateCashierInfo();
   updateTxnHead();
@@ -3245,71 +3249,54 @@ function selectCashier(code, name){
   document.getElementById("welcomeScreen").style.display = "none";
 }
 
-
-  document.getElementById("welcomeScreen").style.display = "none";
-    updateSwitchCashierButton(); // ✅ tambah ini
-	  // ⬇️ PAKSA TAMPILKAN POS
-  panelProduct.style.display = "flex";
-  panelPayment.style.display = "none";
-  panelTransactions.style.display = "none";
-  panelSettings.style.display = "none";
-
-  if (cartPanel) cartPanel.style.display = "flex";
-
-  setActiveTabBtn("sales");
-  // ✅ paksa render produk setelah pilih kasir
-  page = 1;
-  loadProducts();
-
-
-
+/**
+ * Cek apakah kasir sudah ada
+ * Dipanggil saat app load
+ */
 function checkCashier(){
-  const id = localStorage.getItem("pos_active_cashier_id");
+  loadCashier(); // ✅ SSOT
 
-
-  if (!id) {
+  if (!CASHIER_ID || !CASHIER_NAME) {
     document.getElementById("welcomeScreen").style.display = "flex";
     return;
   }
 
-  // kalau sudah ada kasir → pastikan POS tampil
   document.getElementById("welcomeScreen").style.display = "none";
-
-  panelProduct.style.display = "flex";
-  if (cartPanel) cartPanel.style.display = "flex";
-
-  setActiveTabBtn("sales");
-    // ✅ paksa render produk (biar pas refresh/offline nggak kosong)
-  page = 1;
-  loadProducts();
-
 }
 
+/**
+ * Reset / ganti kasir
+ */
 function resetCashier(){
-// ✅ OPSI A: kunci ganti kasir saat transaksi aktif
+  // ❌ tidak boleh ganti kasir saat transaksi aktif
   if (isOrderActive()){
-    alert("Tidak bisa ganti kasir saat ada transaksi aktif.\nSelesaikan transaksi atau klik Reset dulu.");
+    alert(
+      "Tidak bisa ganti kasir saat ada transaksi aktif.\n" +
+      "Selesaikan transaksi atau klik Reset dulu."
+    );
     return;
   }
+
   if (!confirm("Ganti kasir? Transaksi berjalan akan tetap aman.")) return;
 
-localStorage.removeItem("pos_active_cashier_id");
-localStorage.removeItem("pos_active_cashier_name");
-localStorage.removeItem("pos_cashier_code");
-
+  // hapus identitas kasir
+  localStorage.removeItem("pos_active_cashier_id");
+  localStorage.removeItem("pos_active_cashier_name");
+  localStorage.removeItem("pos_cashier_code");
 
   CASHIER_ID = null;
   CASHIER_NAME = null;
 
   updateCashierInfo();
   updateTxnHead();
-
-  // ✅ ini WAJIB
   resetTransactionUI();
 
   document.getElementById("welcomeScreen").style.display = "flex";
 }
 
+/**
+ * Update judul daftar transaksi
+ */
 function updateTxnHead(){
   const titleEl = document.getElementById("txnHeadTitle");
   if (!titleEl) return;
@@ -3324,13 +3311,14 @@ function updateTxnHead(){
     : "Daftar Transaksi";
 }
 
-
-
+/**
+ * Update info kasir di header POS
+ */
 function updateCashierInfo(){
   const el = document.getElementById("cashierInfo");
   if (!el) return;
 
-  const name = localStorage.getItem("pos_active_cashier_name");
+  const name = CASHIER_NAME;
   const code = localStorage.getItem("pos_cashier_code");
 
   if (!name) {
@@ -3343,7 +3331,9 @@ function updateCashierInfo(){
     : `Kasir: ${name}`;
 }
 
-
+// ==============================
+// NETWORK EVENT
+// ==============================
 window.addEventListener("online", () => {
   console.log("🌐 Online kembali → sync offline orders");
   syncOfflineOrdersToServer();
