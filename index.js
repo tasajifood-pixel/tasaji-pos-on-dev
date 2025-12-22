@@ -1014,9 +1014,8 @@ return;
 
 
   if (currentQuery) {
-    q = q.or(
-  `item_name.ilike.%${currentQuery}%,
-   item_code.ilike.%${currentQuery}%`
+   q = q.or(`item_name.ilike.%${currentQuery}%,item_code.ilike.%${currentQuery}%`);
+
 );
 
   }
