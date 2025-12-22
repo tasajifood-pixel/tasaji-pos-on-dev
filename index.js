@@ -92,7 +92,11 @@ const setAutoSyncHours = document.getElementById("setAutoSyncHours");
 
 
 /* event input cash */
-cashInput.addEventListener("input", onCashInputChange);
+if (cashInput) {
+  cashInput.addEventListener("input", onCashInputChange);
+}
+
+
 // customer autocomplete
 if (customerInput) {
   customerInput.addEventListener("input", searchCustomer);
