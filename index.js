@@ -714,7 +714,10 @@ if (sNote2 !== null) STORE_NOTE_2 = sNote2;
   if (sShift !== null) applyShiftX(sShift);
 
   // sync UI settings panel
+  if (typeof RECEIPT_PAPER !== "undefined" && setReceiptPaper) {
   setReceiptPaper.value = RECEIPT_PAPER;
+}
+
   setStoreName.value = STORE_NAME;
   setStoreSub.value = STORE_SUB;
   setShiftX.value = (sShift !== null) ? sShift : 0;
@@ -723,7 +726,7 @@ if (setNote2) setNote2.value = STORE_NOTE_2 || "";
 const sAutoSync = localStorage.getItem("setting_autoSyncHours");
 if (sAutoSync) AUTO_SYNC_HOURS = Number(sAutoSync) || 3;
 
-const setAuto = document.getElementById("setAutoSyncHours");
+const setAutoSyncHours = document.getElementById("setAutoSyncHours");
 if (setAutoSyncHours) setAutoSyncHours.value = AUTO_SYNC_HOURS;
 
 }
