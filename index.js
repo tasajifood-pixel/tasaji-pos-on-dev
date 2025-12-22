@@ -963,7 +963,7 @@ async function loadProducts() {
       const q = currentQuery.toLowerCase();
       list = list.filter(p =>
         (p.item_name || "").toLowerCase().includes(q) ||
-        (p.item_code || "").toLowerCase().includes(q) ||
+        (p.item_code || "").toLowerCase().includes(q)
        
       );
     }
