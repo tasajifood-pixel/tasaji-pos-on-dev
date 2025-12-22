@@ -862,6 +862,31 @@ if (key === "report") {
 /* =====================================================
    LOAD PRODUCTS
 ===================================================== */
+// =====================================================
+// ✅ BLUEPRINT FINAL: TERLARIS (SSOT)
+// Source: decision.v_best_seller_periods
+// =====================================================
+async function loadBestSellerMapFinal(periodKey = "7d") {
+  if (!isOnline()) return {};
+
+  const { data, error } = await sb
+    .from("decision.v_best_seller_periods")
+    .select("pcs_item_code, rank_no")
+    .eq("period_key", periodKey);
+
+  if (error) {
+    console.error("loadBestSellerMapFinal error:", error);
+    return {};
+  }
+
+  const map = {};
+  (data || []).forEach(r => {
+    map[r.pcs_item_code] = r.rank_no;
+  });
+
+  return map;
+}
+
 async function loadProducts() {
   // default sort
   let sortMode = PRODUCT_SORT_MODE || localStorage.getItem("product_sort_mode") || "az";
@@ -956,7 +981,8 @@ return;
   // BEST SELLER: sort manual
   // ==========================
   if (sortMode === "best") {
-    const rankMap = await loadBestSellerMap();
+    const rankMap = await loadBestSellerMapFinal(BEST_SELLER_PERIOD || "7d");
+
 
     // Ambil "lebih banyak" dulu, baru sort, lalu slice untuk page
     // (Karena kalau kita range dulu, sorting rank-nya jadi salah)
@@ -1197,6 +1223,7 @@ if(!isOnline() || !supabaseOK){
 // ==========================
 // BEST SELLER MAP (90 HARI)
 // ==========================
+// ❌ DEPRECATED: TIDAK SESUAI BLUEPRINT FINAL
 async function loadBestSellerMap() {
   if (!isOnline()) return {};
 
