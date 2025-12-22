@@ -881,25 +881,25 @@ function setActiveTabBtn(key){
 
 function showLeftPanel(panelKey){
   // sembunyikan semua panel kiri
-  panelProduct.style.display = "none";
-  panelPayment.style.display = "none";
-  panelTransactions.style.display = "none";
-  panelSettings.style.display = "none";
+  if (panelProduct) panelProduct.style.display = "none";
+  if (panelPayment) panelPayment.style.display = "none";
+  if (panelTransactions) panelTransactions.style.display = "none";
+  if (panelSettings) panelSettings.style.display = "none";
 
   if(panelKey === "sales"){
     // kalau lagi payment, tetap payment (biar gak bingung)
    if(panelKey === "sales"){
   const isPaying = (document.getElementById("panel-payment")?.dataset?.active === "1");
-  if (isPaying) panelPayment.style.display = "block";
-  else panelProduct.style.display = "flex";
+  if (isPaying && panelPayment) panelPayment.style.display = "block";
+  else if (panelProduct) panelProduct.style.display = "flex";
 }
 
   }
   if(panelKey === "txn"){
-    panelTransactions.style.display = "flex";
+    if (panelTransactions) panelTransactions.style.display = "flex";
   }
   if(panelKey === "set"){
-    panelSettings.style.display = "flex";
+    if (panelSettings) panelSettings.style.display = "flex";
   }
 }
 
@@ -907,21 +907,21 @@ function switchLeftTab(key){
   setActiveTabBtn(key);
 
   // SEMBUNYIKAN SEMUA PANEL KIRI (WAJIB)
-  panelProduct.style.display = "none";
-  panelPayment.style.display = "none";
-  panelTransactions.style.display = "none";
-  panelSettings.style.display = "none";
-  panelReport.style.display = "none";
+  if (panelProduct) panelProduct.style.display = "none";
+  if (panelPayment) panelPayment.style.display = "none";
+  if (panelTransactions) panelTransactions.style.display = "none";
+  if (panelSettings) panelSettings.style.display = "none";
+  if (panelReport) panelReport.style.display = "none";
 
   
 
 
   if (key === "sales") {
-    panelProduct.style.display = "flex";
+    if (panelProduct) panelProduct.style.display = "flex";
     if (cartPanel) cartPanel.style.display = "flex";
   }
 if (key === "txn") {
-  panelTransactions.style.display = "flex";
+  if (panelTransactions) panelTransactions.style.display = "flex";
   if (cartPanel) cartPanel.style.display = "none";
   initTxnFilterUI();
   loadTransactions(true);
@@ -929,11 +929,11 @@ if (key === "txn") {
 
 
   if (key === "set") {
-  panelSettings.style.display = "flex";
+  if (panelSettings) panelSettings.style.display = "flex";
   if (cartPanel) cartPanel.style.display = "none";
 }
 if (key === "report") {
-  panelReport.style.display = "flex";
+  if (panelReport) panelReport.style.display = "flex";
   if (cartPanel) cartPanel.style.display = "none";
   initReportUI();
   loadReport();
@@ -1527,10 +1527,12 @@ const dropdown = customerDropdown || document.getElementById("customerDropdown")
 
   recalcPaymentStatus();
 
-  panelPayment.style.display = "none";
-  panelProduct.style.display = "flex";
-  btnNext.style.display = "block";
-  panelPayment.dataset.active = "0";
+  if (panelPayment) {
+    panelPayment.style.display = "none";
+    panelPayment.dataset.active = "0";
+  }
+  if (panelProduct) panelProduct.style.display = "flex";
+  if (btnNext) btnNext.style.display = "block";
 
 }
 
@@ -1725,19 +1727,6 @@ async function goToPayment() {
   // pastikan tab kiri tetap "sales"
   setActiveTabBtn("sales");
 
-  // 🔒 AMBIL DOM + GUARD
-  const panelProduct      = document.getElementById("panelProduct");
-  const panelPayment      = document.getElementById("panelPayment");
-  const panelTransactions= document.getElementById("panelTransactions");
-  const panelSettings     = document.getElementById("panelSettings");
-  const btnNext           = document.getElementById("btnNext");
-
-  const payTotal          = document.getElementById("payTotal");
-  const payItemCount      = document.getElementById("payItemCount");
-  const cashInput         = document.getElementById("cashInput");
-  const changeOutput      = document.getElementById("changeOutput");
-  const quickCash         = document.getElementById("quickCash");
-
   if (panelProduct) panelProduct.style.display = "none";
   if (panelPayment) {
     panelPayment.style.display = "block";
@@ -1837,7 +1826,7 @@ function recalcPaymentStatus(){
 
   const hasCash = PAYMENT_LINES.some(x => x.method === "cash");
   const change = (hasCash && paid > total) ? (paid - total) : 0;
-  changeOutput.textContent = formatRupiah(change);
+  if (changeOutput) changeOutput.textContent = formatRupiah(change);
 
   const isLunas = rem <= 0 && PAYMENT_LINES.length > 0;
 
@@ -1933,7 +1922,7 @@ if (payMethodBtns.length) {
       cashInput.disabled = false;
       cashInput.readOnly = false;
       cashInput.value = "";
-      changeOutput.textContent = formatRupiah(0);
+      if (changeOutput) changeOutput.textContent = formatRupiah(0);
       cashInput.focus();
 
       if (quickCash) quickCash.style.display = "flex";
@@ -1941,7 +1930,7 @@ if (payMethodBtns.length) {
       cashInput.disabled = true;
       cashInput.readOnly = true;
       cashInput.value = "";
-      changeOutput.textContent = formatRupiah(0);
+      if (changeOutput) changeOutput.textContent = formatRupiah(0);
 
       if (quickCash) quickCash.style.display = "none";
       addNonCashLine(selectedPaymentMethod);
@@ -1950,6 +1939,8 @@ if (payMethodBtns.length) {
     recalcPaymentStatus();
   });
 });
+
+}
 
 async function processPayment() {
   // ==============================
@@ -2058,10 +2049,12 @@ resetAll();
 
 function backToEdit() {
   setActiveTabBtn("sales");
-  panelPayment.style.display = "none";
-  panelProduct.style.display = "flex";
-  btnNext.style.display = "block";
-  panelPayment.dataset.active = "0";
+  if (panelPayment) {
+    panelPayment.style.display = "none";
+    panelPayment.dataset.active = "0";
+  }
+  if (panelProduct) panelProduct.style.display = "flex";
+  if (btnNext) btnNext.style.display = "block";
 
 }
 
@@ -3154,9 +3147,9 @@ cart = items.map(i => ({
 
   // balik ke penjualan
   switchLeftTab("sales");
-  panelPayment.style.display = "none";
-  panelProduct.style.display = "flex";
-  btnNext.style.display = "block";
+  if (panelPayment) panelPayment.style.display = "none";
+  if (panelProduct) panelProduct.style.display = "flex";
+  if (btnNext) btnNext.style.display = "block";
 }
 function applyProductViewMode(){
   const grid = document.getElementById("productGrid");
