@@ -3443,53 +3443,6 @@ if (isOnline()) {
 
 })();
 
-
-
-  if (!confirm("Ganti kasir? Transaksi berjalan akan tetap aman.")) return;
-
-  // hapus identitas kasir
-  localStorage.removeItem("pos_active_cashier_id");
-  localStorage.removeItem("pos_active_cashier_name");
-  localStorage.removeItem("pos_cashier_code");
-
-  CASHIER_ID = null;
-  CASHIER_NAME = null;
-
-  updateCashierInfo();
-  updateTxnHead();
-  resetTransactionUI();
-
-  const ws = document.getElementById("welcomeScreen");
-  if (ws) ws.style.display = "flex";
-}
-
-
-/**
- * Update judul daftar transaksi
- */
-function updateTxnHead(){
-  const titleEl = document.getElementById("txnHeadTitle");
-  if (!titleEl) return;
-
-  const name = CASHIER_NAME || "";
-  titleEl.textContent = name
-    ? `Daftar Transaksi — ${name}`
-    : "Daftar Transaksi";
-}
-
-/**
- * Update info kasir di header POS
- */
-function updateCashierInfo(){
-  const el = document.getElementById("cashierInfo");
-  if (!el) return;
-
-  const name = CASHIER_NAME || "";
-  if (!name) { el.textContent = ""; return; }
-
-  el.textContent = `Kasir: ${name}`;
-}
-
 // ==============================
 // NETWORK EVENT
 // ==============================
