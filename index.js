@@ -862,6 +862,30 @@ if (key === "report") {
 /* =====================================================
    LOAD PRODUCTS
 ===================================================== */
+// ==============================
+// LOAD INVENTORY STOCK MAP (PCS & KARTON)
+// ==============================
+async function loadInventoryStockMap() {
+  if (!isOnline()) return {};
+
+  const { data, error } = await sb
+    .schema("decision")
+    .from("v_inventory_ui")
+    .select("item_id, stok_tersedia");
+
+  if (error) {
+    console.error("❌ loadInventoryStockMap error", error);
+    return {};
+  }
+
+  const map = {};
+  (data || []).forEach(r => {
+    map[r.item_id] = Number(r.stok_tersedia || 0);
+  });
+
+  return map;
+}
+
 async function loadProducts() {
   // default sort
   let sortMode = PRODUCT_SORT_MODE || localStorage.getItem("product_sort_mode") || "az";
@@ -923,34 +947,87 @@ return;
 
   }
 
-  // ==========================
-  // ONLINE MODE → SUPABASE
-  // ==========================
-  let q = sb
+ // ==========================
+// ONLINE MODE → SUPABASE
+// ==========================
+let q = sb
   .from("master_items")
-  .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty",{ count:"exact" });
+  .select(
+    "item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty",
+    { count: "exact" }
+  );
 
-  if (currentQuery) {
-    q = q.or(`item_name.ilike.%${currentQuery}%,item_code.ilike.%${currentQuery}%,barcode.ilike.%${currentQuery}%`);
-  }
-  if (filters.hideEmpty) q = q.gt("available_qty",0);
-  if (filters.hideKtn) q = q.not("item_name","ilike","%ktn%");
-  // ==========================
-  // APPLY SORT (ONLINE)
-  // ==========================
-  if (sortMode === "az") {
-    q = q.order("item_name", { ascending: true });
-  } else if (sortMode === "latest") {
-    // kalau tidak punya kolom updated_at, pakai item_id sebagai pendekatan "terbaru"
-    q = q.order("item_id", { ascending: false });
+// 🔎 search masih BOLEH di SQL
+if (currentQuery) {
+  q = q.or(
+    `item_name.ilike.%${currentQuery}%,item_code.ilike.%${currentQuery}%,barcode.ilike.%${currentQuery}%`
+  );
+}
+
+// ❌ JANGAN filter stok di SQL
+// if (filters.hideEmpty) q = q.gt("available_qty",0);
+
+// ❌ hideKtn masih boleh sementara (nama)
+// (nanti bisa dirapikan pakai item_type)
+if (filters.hideKtn) {
+  q = q.not("item_name", "ilike", "%ktn%");
+}
+
+// ==========================
+// APPLY SORT (ONLINE)
+// ==========================
+
+// 🔑 ambil stok DULU
+const STOCK_MAP = await loadInventoryStockMap();
+
+if (sortMode === "az") {
+  q = q.order("item_name", { ascending: true });
+} else if (sortMode === "latest") {
+  q = q.order("item_id", { ascending: false });
+} else {
+  q = q.order("item_name", { ascending: true });
+}
+
+// ==========================
+// PAGINATION
+// ==========================
+const from = (page - 1) * pageSize;
+const to = from + pageSize - 1;
+
+// ==========================
+// AMBIL DATA
+// ==========================
+const { data, count, error } = await q.range(from, to);
+if (error) {
+  console.error(error);
+  return;
+}
+
+// ==========================
+// OVERRIDE STOK (INI KUNCI)
+// ==========================
+(data || []).forEach(p => {
+  if (STOCK_MAP.hasOwnProperty(p.item_id)) {
+    p.available_qty = STOCK_MAP[p.item_id];
   } else {
-    // "best" ditangani setelah data diambil (sort manual pakai rankMap)
-    // agar aman tanpa FK join
-    q = q.order("item_name", { ascending: true }); // fallback biar stabil
+    p.available_qty = 0;
   }
+});
 
-  const from = (page-1)*pageSize;
-  const to = from + pageSize - 1;
+// ==========================
+// FILTER STOK (PINDAH KE SINI)
+// ==========================
+let finalList = data || [];
+
+if (filters.hideEmpty) {
+  finalList = finalList.filter(p => p.available_qty > 0);
+}
+
+// ==========================
+// RENDER
+// ==========================
+renderProducts(finalList);
+updatePagination(count || 0);
 
    // ==========================
   // BEST SELLER: sort manual
