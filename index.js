@@ -1053,15 +1053,28 @@ if (filters.hideEmpty) {
 }
 
 
-    list.sort((a,b)=>{
+    list.sort((a, b) => {
   const ra = rankMap[a.item_code];
   const rb = rankMap[b.item_code];
 
-  if (ra == null && rb == null) return 0;
-  if (ra == null) return 1;   // yang bukan best seller selalu di bawah
-  if (rb == null) return -1;
+  // 1️⃣ Dua-duanya ADA di best seller → urutkan by rank
+  if (ra != null && rb != null) {
+    return ra - rb;
+  }
 
-  return ra - rb;
+  // 2️⃣ Hanya A yang ADA → A di atas
+  if (ra != null && rb == null) {
+    return -1;
+  }
+
+  // 3️⃣ Hanya B yang ADA → B di atas
+  if (ra == null && rb != null) {
+    return 1;
+  }
+
+  // 4️⃣ Dua-duanya TIDAK ADA → urutkan A–Z (item_name)
+  return String(a.item_name || "")
+    .localeCompare(String(b.item_name || ""), "id");
 });
 
 
