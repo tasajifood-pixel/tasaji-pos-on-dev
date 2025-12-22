@@ -3289,12 +3289,14 @@ function selectCashier(code){
 function checkCashier(){
   loadCashier(); // ✅ SSOT
 
+  const ws = document.getElementById("welcomeScreen");
+
   if (!CASHIER_ID || !CASHIER_NAME) {
-    document.getElementById("welcomeScreen").style.display = "flex";
+    if (ws) ws.style.display = "flex";
     return;
   }
 
-  document.getElementById("welcomeScreen").style.display = "none";
+  if (ws) ws.style.display = "none";
 }
 
 /**
@@ -3324,8 +3326,10 @@ function resetCashier(){
   updateTxnHead();
   resetTransactionUI();
 
-  document.getElementById("welcomeScreen").style.display = "flex";
+  const ws = document.getElementById("welcomeScreen");
+  if (ws) ws.style.display = "flex";
 }
+
 
 /**
  * Update judul daftar transaksi
