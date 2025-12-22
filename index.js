@@ -3360,6 +3360,15 @@ function updateCashierInfo(){
 
   el.textContent = `Kasir: ${name}`;
 }
+function updateTxnHead(){
+  const titleEl = document.getElementById("txnHeadTitle");
+  if (!titleEl) return;
+
+  const name = CASHIER_NAME || "";
+  titleEl.textContent = name
+    ? `Daftar Transaksi — ${name}`
+    : "Daftar Transaksi";
+}
 
 /* =====================================================
    INIT
