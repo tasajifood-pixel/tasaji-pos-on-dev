@@ -3768,7 +3768,6 @@ Object.entries(appliedObj).forEach(([k, amt]) => {
   const backToEditBtn = document.querySelector(".cart-panel .btn-back");
   if (backToEditBtn) backToEditBtn.setAttribute("onclick", "backToEdit()");
 
-  const btnNext = document.getElementById("btnNext");
   if (btnNext) btnNext.setAttribute("onclick", "goToPayment()");
 
   const holdToolbarButtons = document.querySelectorAll("#holdModal .btn-outline");
