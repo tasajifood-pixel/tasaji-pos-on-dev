@@ -279,14 +279,15 @@ async function syncAllProductsToCache(){
      const { data, error } = await sb
   .schema("decision")
   .from("v_inventory_ui")
-  .select(`
-    item_id,
-    item_code,
-    item_name,
-    thumbnail,
-   
-    stok_tersedia
-  `)
+ .select(`
+  item_id,
+  item_code,
+  item_name,
+  thumbnail,
+  stok_tersedia,
+  item_type
+`)
+
   .order("item_name", { ascending:true })
   .range(from, from + size - 1);
 
@@ -1008,18 +1009,20 @@ return;
     item_code,
     item_name,
     thumbnail,
-    
-    stok_tersedia
+    stok_tersedia,
+    item_type
   `, { count: "exact" });
 
+if (currentQuery) {
+  q = q.or(`item_name.ilike.%${currentQuery}%,item_code.ilike.%${currentQuery}%`);
+}
 
-  if (currentQuery) {
-   q = q.or(`item_name.ilike.%${currentQuery}%,item_code.ilike.%${currentQuery}%`);
+if (filters.hideEmpty)
+  q = q.gt("stok_tersedia", 0);
 
-  }
-  if (filters.hideEmpty) q = q.gt("stok_tersedia", 0);
+if (filters.hideKtn)
+  q = q.neq("item_type", "KARTON");
 
-  if (filters.hideKtn) q = q.not("item_name","ilike","%ktn%");
   // ==========================
   // APPLY SORT (ONLINE)
   // ==========================
