@@ -2090,54 +2090,50 @@ function buildJubelioPayload(order, items) {
 // ✅ pastikan setiap item di cart punya itemId (anti NaN -> null)
 async function hydrateCartItemIds(){
   for (const item of cart) {
-    // kalau sudah valid, skip
-    if (item.itemId !== undefined && item.itemId !== null && !Number.isNaN(Number(item.itemId))) continue;
+
+    if (
+      item.itemId !== undefined &&
+      item.itemId !== null &&
+      !Number.isNaN(Number(item.itemId))
+    ) continue;
 
     const code = item.itemCode || item.code;
     if (!code) continue;
 
-   const { data, error } = await sb
-  .schema("decision")
-  .from("v_inventory_ui")
-  .select("item_id, stok_tersedia")
-  .eq("item_code", code)
-  .limit(1)
-  .single();
+    const { data, error } = await sb
+      .schema("decision")
+      .from("v_inventory_ui")
+      .select("item_id")
+      .eq("item_code", code)
+      .limit(1)
+      .single();
 
+    if (!error && data?.item_id) {
+      item.itemId = data.item_id;
+      item.itemCode = code;
+      item.code = code;
+    } else {
+      console.warn("⛔ Item tidak valid (tidak ada di inventory UI):", code);
+    }
+  }
 
-   if (!error && data?.item_id) {
-  item.itemId = data.item_id;
-  item.itemCode = code;
-  item.code = code;
-} else {
-  // item tidak ditemukan di inventory UI
-  // artinya produk sudah mati / disembunyikan
-  // BIARKAN itemId kosong → nanti ditolak saat proses checkout
-  console.warn("⛔ Item tidak valid (tidak ada di inventory UI):", code);
-}
-
-
-  // simpan kembali ke localStorage biar permanen
+  // ✅ SIMPAN SETELAH LOOP SELESAI
   saveOrderState();
 }
 
+
 async function saveSalesOrderHeader() {
-  // ✅ kalau belum ada nomor, buat sekarang (anti error, anti reuse sisa localStorage)
+
   if (!CURRENT_SALESORDER_NO) {
     CURRENT_SALESORDER_NO = await generateSalesOrderNo();
     updateOrderNumberUI();
-     // simpan kembali ke localStorage biar permanen
-  saveOrderState();
-} // ⬅️ TUTUP for
-
-} // ⬅️ TUTUP function hydrateCartItemIds
-
+    saveOrderState();
+  }
 
   const payload = {
-
     salesorder_no: CURRENT_SALESORDER_NO,
-	cashier_id: CASHIER_ID || "UNKNOWN",
-	cashier_name: CASHIER_NAME || "UNKNOWN",
+    cashier_id: CASHIER_ID || "UNKNOWN",
+    cashier_name: CASHIER_NAME || "UNKNOWN",
     contact_id: ACTIVE_CUSTOMER?.contact_id ?? -1,
     customer_name: ACTIVE_CUSTOMER?.contact_name ?? "Pelanggan Umum",
     shipping_phone: ACTIVE_CUSTOMER?.phone ?? null,
@@ -2149,11 +2145,10 @@ async function saveSalesOrderHeader() {
     store_id: -100,
     is_paid: true,
 
-// ✅ status sync Jubelio (queue)
-jubelio_synced: false,
-jubelio_synced_at: null,
-jubelio_error: null,
-jubelio_payload: null
+    jubelio_synced: false,
+    jubelio_synced_at: null,
+    jubelio_error: null,
+    jubelio_payload: null
   };
 
   const { data, error } = await sb
@@ -2170,6 +2165,7 @@ jubelio_payload: null
 
   return data;
 }
+
 
 
 async function saveSalesOrderItems(salesorderNo) {
