@@ -284,7 +284,7 @@ async function syncAllProductsToCache(){
     item_code,
     item_name,
     thumbnail,
-    barcode,
+   
     stok_tersedia
   `)
   .order("item_name", { ascending:true })
@@ -992,7 +992,7 @@ return;
     item_code,
     item_name,
     thumbnail,
-    barcode,
+    
     stok_tersedia
   `, { count: "exact" });
 
