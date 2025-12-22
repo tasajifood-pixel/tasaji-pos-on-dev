@@ -887,6 +887,8 @@ async function loadInventoryStockMap() {
 }
 
 async function loadProducts() {
+
+
   // default sort
   let sortMode = PRODUCT_SORT_MODE || localStorage.getItem("product_sort_mode") || "az";
 
