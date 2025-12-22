@@ -840,19 +840,6 @@ function bindSettingsEvents(){
 }
 
 
-  setShiftX.addEventListener("input", () => {
-    const v = Number(setShiftX.value || 0);
-    localStorage.setItem("setting_shiftX", String(v));
-    applyShiftX(v);
-  });
-
-  setRequireStock.addEventListener("change", () => {
-    filters.requireStock = setRequireStock.checked;
-    localStorage.setItem("filterRequireStock", filters.requireStock ? "1" : "0");
-    page = 1;
-    loadProducts();
-  });
-
 function loadFilterSettings(){
   const savedHideEmpty = localStorage.getItem("filterHideEmpty");
   const savedHideKtn   = localStorage.getItem("filterHideKtn");
