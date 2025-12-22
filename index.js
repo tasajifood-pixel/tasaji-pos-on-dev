@@ -3348,6 +3348,18 @@ function bindUIEvents(){
   const receiptModal = document.getElementById("receiptModal");
   receiptModal?.addEventListener("click", () => { receiptModal.style.display = "none"; });
 }
+function updateCashierInfo(){
+  const el = document.getElementById("cashierInfo");
+  if (!el) return;
+
+  const name = CASHIER_NAME || "";
+  if (!name) {
+    el.textContent = "";
+    return;
+  }
+
+  el.textContent = `Kasir: ${name}`;
+}
 
 /* =====================================================
    INIT
@@ -3368,11 +3380,9 @@ function bindUIEvents(){
   updateCashierInfo();
   updateTxnHead();
 
-  // ✅ bind events setelah DOM siap
-  bindUIEvents();
+ // ✅ bind UI events setelah kasir & DOM siap
+bindUIEvents();
 
-  // 2️⃣ bind UI events (WAJIB)
-  bindUIEvents();
 
   // 3️⃣ settings
   loadSettings();
@@ -3502,7 +3512,8 @@ function initReportUI(){
   const yyyy = today.getFullYear();
   const mm = String(today.getMonth()+1).padStart(2,"0");
   const dd = String(today.getDate()).padStart(2,"0");
-  const todayStr = `${yyyy}-${mm}-${dd}`;
+  const todayStr = `${yyyy}-${mm}-${dd}`;init
+
 
   if (fromEl && !fromEl.value) fromEl.value = todayStr;
   if (toEl && !toEl.value)   toEl.value   = todayStr;
