@@ -276,15 +276,28 @@ async function syncAllProductsToCache(){
     const size = 1000;
 
     while(true){
-      const { data, error } = await sb
-        .from("master_items")
-        .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty")
-        .order("item_name", { ascending:true })
-        .range(from, from + size - 1);
+     const { data, error } = await sb
+  .schema("decision")
+  .from("v_inventory_ui")
+  .select(`
+    item_id,
+    item_code,
+    item_name,
+    thumbnail,
+    barcode,
+    stok_tersedia
+  `)
+  .order("item_name", { ascending:true })
+  .range(from, from + size - 1);
+
 
       if(error) throw error;
 
-      all.push(...(data || []));
+     all.push(...(data || []).map(p => ({
+  ...p,
+  available_qty: Number(p.stok_tersedia || 0)
+})));
+
       if(!data || data.length < size) break;
 
       from += size;
@@ -309,9 +322,11 @@ async function canReachSupabase(){
 
   try {
     const { error } = await sb
-      .from("master_items")
-      .select("item_id")
-      .limit(1);
+  .schema("decision")
+  .from("v_inventory_ui")
+  .select("item_code")
+  .limit(1);
+
 
     return !error;
   } catch {
@@ -610,17 +625,23 @@ document.addEventListener("click", (e) => {
 async function findProductByBarcode(barcode) {
   if (!barcode) return null;
 
-  const { data, error } = await sb
-    .from("master_items")
-    .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty")
-    .eq("barcode", barcode)
-    .limit(1)
-    .single();
+ const { data, error } = await sb
+  .schema("decision")
+  .from("v_inventory_ui")
+  .select(`
+    item_id,
+    item_code,
+    item_name,
+    thumbnail,
+    barcode,
+    stok_tersedia
+  `)
+  .eq("barcode", barcode)
+  .limit(1)
+  .single();
+if (product.available_qty <= 0 && filters.requireStock) return null;
+return product;
 
-  if (error || !data) return null;
-  if (data.available_qty <= 0 && filters.requireStock) return null;
-  return data;
-}
 
 // simpan cart + customer ke localStorage
 function saveOrderState() {
@@ -954,14 +975,24 @@ return;
   // ==========================
   // ONLINE MODE → SUPABASE
   // ==========================
-  let q = sb
-  .from("master_items")
-  .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty",{ count:"exact" });
+ let q = sb
+  .schema("decision")
+  .from("v_inventory_ui")
+  .select(`
+    item_id,
+    item_code,
+    item_name,
+    thumbnail,
+    barcode,
+    stok_tersedia
+  `, { count: "exact" });
+
 
   if (currentQuery) {
     q = q.or(`item_name.ilike.%${currentQuery}%,item_code.ilike.%${currentQuery}%,barcode.ilike.%${currentQuery}%`);
   }
-  if (filters.hideEmpty) q = q.gt("available_qty",0);
+  if (filters.hideEmpty) q = q.gt("stok_tersedia", 0);
+
   if (filters.hideKtn) q = q.not("item_name","ilike","%ktn%");
   // ==========================
   // APPLY SORT (ONLINE)
@@ -969,9 +1000,8 @@ return;
   if (sortMode === "az") {
     q = q.order("item_name", { ascending: true });
   } else if (sortMode === "latest") {
-    // kalau tidak punya kolom updated_at, pakai item_id sebagai pendekatan "terbaru"
-    q = q.order("item_id", { ascending: false });
-  } else {
+  q = q.order("item_name", { ascending: true }); // fallback aman
+} else {
     // "best" ditangani setelah data diambil (sort manual pakai rankMap)
     // agar aman tanpa FK join
     q = q.order("item_name", { ascending: true }); // fallback biar stabil
@@ -2058,19 +2088,26 @@ async function hydrateCartItemIds(){
     const code = item.itemCode || item.code;
     if (!code) continue;
 
-    const { data, error } = await sb
-      .from("master_items")
-      .select("item_id")
-      .eq("item_code", code)
-      .limit(1)
-      .single();
+   const { data, error } = await sb
+  .schema("decision")
+  .from("v_inventory_ui")
+  .select("item_id, stok_tersedia")
+  .eq("item_code", code)
+  .limit(1)
+  .single();
 
-    if (!error && data?.item_id) {
-      item.itemId = data.item_id;
-      item.itemCode = code;
-      item.code = code;
-    }
-  }
+
+   if (!error && data?.item_id) {
+  item.itemId = data.item_id;
+  item.itemCode = code;
+  item.code = code;
+} else {
+  // item tidak ditemukan di inventory UI
+  // artinya produk sudah mati / disembunyikan
+  // BIARKAN itemId kosong → nanti ditolak saat proses checkout
+  console.warn("⛔ Item tidak valid (tidak ada di inventory UI):", code);
+}
+
 
   // simpan kembali ke localStorage biar permanen
   saveOrderState();
