@@ -870,9 +870,11 @@ async function loadBestSellerMapFinal(periodKey = "7d") {
   if (!isOnline()) return {};
 
   const { data, error } = await sb
-    .from("decision.v_best_seller_periods")
-    .select("pcs_item_code, rank_no")
-    .eq("period_key", periodKey);
+  .schema("decision")
+  .from("v_best_seller_periods")
+  .select("pcs_item_code,rank_no")
+  .eq("period_key", periodKey);
+
 
   if (error) {
     console.error("loadBestSellerMapFinal error:", error);
