@@ -276,29 +276,15 @@ async function syncAllProductsToCache(){
     const size = 1000;
 
     while(true){
-     const { data, error } = await sb
-  .schema("decision")
-  .from("v_inventory_ui")
- .select(`
-  item_id,
-  item_code,
-  item_name,
-  thumbnail,
-  stok_tersedia,
-  item_type
-`)
-
-  .order("item_name", { ascending:true })
-  .range(from, from + size - 1);
-
+      const { data, error } = await sb
+        .from("master_items")
+        .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty")
+        .order("item_name", { ascending:true })
+        .range(from, from + size - 1);
 
       if(error) throw error;
 
-     all.push(...(data || []).map(p => ({
-  ...p,
-  available_qty: Number(p.stok_tersedia || 0)
-})));
-
+      all.push(...(data || []));
       if(!data || data.length < size) break;
 
       from += size;
@@ -323,11 +309,9 @@ async function canReachSupabase(){
 
   try {
     const { error } = await sb
-  .schema("decision")
-  .from("v_inventory_ui")
-  .select("item_code")
-  .limit(1);
-
+      .from("master_items")
+      .select("item_id")
+      .limit(1);
 
     return !error;
   } catch {
@@ -626,48 +610,17 @@ document.addEventListener("click", (e) => {
 async function findProductByBarcode(barcode) {
   if (!barcode) return null;
 
-  // 1️⃣ Cari item_id dari MASTER ITEMS (SSOT BARCODE)
-  const { data: master, error: e1 } = await sb
+  const { data, error } = await sb
     .from("master_items")
-    .select("item_id")
+    .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty")
     .eq("barcode", barcode)
     .limit(1)
     .single();
 
-  if (e1 || !master?.item_id) {
-    return null; // barcode tidak dikenal
-  }
-
-  // 2️⃣ Ambil data produk + stok dari INVENTORY UI
-  const { data: product, error: e2 } = await sb
-    .schema("decision")
-    .from("v_inventory_ui")
-    .select(`
-      item_id,
-      item_code,
-      item_name,
-      thumbnail,
-      stok_tersedia
-    `)
-    .eq("item_id", master.item_id)
-    .limit(1)
-    .single();
-
-  if (e2 || !product) return null;
-
-  // 3️⃣ Normalisasi agar konsisten dengan cart
-  const normalized = {
-    ...product,
-    available_qty: Number(product.stok_tersedia || 0)
-  };
-
-  // 4️⃣ Hormati setting require stock
-  if (normalized.available_qty <= 0 && filters.requireStock) return null;
-
-  return normalized;
+  if (error || !data) return null;
+  if (data.available_qty <= 0 && filters.requireStock) return null;
+  return data;
 }
-
-
 
 // simpan cart + customer ke localStorage
 function saveOrderState() {
@@ -909,34 +862,6 @@ if (key === "report") {
 /* =====================================================
    LOAD PRODUCTS
 ===================================================== */
-// =====================================================
-// ✅ BLUEPRINT FINAL: TERLARIS (SSOT)
-// Source: decision.v_best_seller_periods
-// =====================================================
-async function loadBestSellerMapFinal(periodKey = "7d") {
-  if (!isOnline()) return {};
-
-  const { data, error } = await sb
-    .schema("decision")
-    .from("mv_best_seller_ui")
-    .select("pcs_item_code, rank_no")
-    .eq("period_key", periodKey)
-    .lte("rank_no", 100);
-
-  if (error) {
-    console.error("BEST SELLER LOAD ERROR:", error);
-    return {};
-  }
-
-  const map = {};
-  (data || []).forEach(r => {
-    map[String(r.pcs_item_code).toUpperCase()] = Number(r.rank_no);
-  });
-
-  return map;
-}
-
-
 async function loadProducts() {
   // default sort
   let sortMode = PRODUCT_SORT_MODE || localStorage.getItem("product_sort_mode") || "az";
@@ -964,8 +889,8 @@ async function loadProducts() {
       const q = currentQuery.toLowerCase();
       list = list.filter(p =>
         (p.item_name || "").toLowerCase().includes(q) ||
-        (p.item_code || "").toLowerCase().includes(q)
-       
+        (p.item_code || "").toLowerCase().includes(q) ||
+        (p.barcode || "").includes(q)
       );
     }
 
@@ -1001,36 +926,24 @@ return;
   // ==========================
   // ONLINE MODE → SUPABASE
   // ==========================
- let q = sb
-  .schema("decision")
-  .from("v_inventory_ui")
-  .select(`
-    item_id,
-    item_code,
-    item_name,
-    thumbnail,
-    stok_tersedia,
-    item_type
-  `, { count: "exact" });
+  let q = sb
+  .from("master_items")
+  .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty",{ count:"exact" });
 
-if (currentQuery) {
-  q = q.or(`item_name.ilike.%${currentQuery}%,item_code.ilike.%${currentQuery}%`);
-}
-
-if (filters.hideEmpty)
-  q = q.gt("stok_tersedia", 0);
-
-if (filters.hideKtn)
-  q = q.neq("item_type", "KARTON");
-
+  if (currentQuery) {
+    q = q.or(`item_name.ilike.%${currentQuery}%,item_code.ilike.%${currentQuery}%,barcode.ilike.%${currentQuery}%`);
+  }
+  if (filters.hideEmpty) q = q.gt("available_qty",0);
+  if (filters.hideKtn) q = q.not("item_name","ilike","%ktn%");
   // ==========================
   // APPLY SORT (ONLINE)
   // ==========================
   if (sortMode === "az") {
     q = q.order("item_name", { ascending: true });
   } else if (sortMode === "latest") {
-  q = q.order("item_name", { ascending: true }); // fallback aman
-} else {
+    // kalau tidak punya kolom updated_at, pakai item_id sebagai pendekatan "terbaru"
+    q = q.order("item_id", { ascending: false });
+  } else {
     // "best" ditangani setelah data diambil (sort manual pakai rankMap)
     // agar aman tanpa FK join
     q = q.order("item_name", { ascending: true }); // fallback biar stabil
@@ -1043,19 +956,14 @@ if (filters.hideKtn)
   // BEST SELLER: sort manual
   // ==========================
   if (sortMode === "best") {
-    const rankMap = await loadBestSellerMapFinal(BEST_SELLER_PERIOD || "7d");
-
+    const rankMap = await loadBestSellerMap();
 
     // Ambil "lebih banyak" dulu, baru sort, lalu slice untuk page
     // (Karena kalau kita range dulu, sorting rank-nya jadi salah)
     const { data: allData, error: e1 } = await q;
 
 
-  if (e1) {
-  console.error("loadProducts error", e1);
-  return;
-}
-
+    if (e1) { console.error("loadProducts error", e1); return; }
 
     const list = (allData || []).slice();
 
@@ -1087,21 +995,20 @@ if (filters.hideKtn)
   // ==========================
   // NON-BEST: normal range
   // ==========================
-const { data, count, error } = await q.range(from,to);
-if (error) {
-  console.error("loadProducts error", error);
-  return;
-}
+  const { data, count, error } = await q.range(from,to);
+  if (error) { console.error("loadProducts error", error); return; }
 
-// 🔥 WAJIB: normalisasi stok
-const normalized = (data || []).map(p => ({
-  ...p,
-  available_qty: Number(p.stok_tersedia || 0)
-}));
+  renderProducts(data||[]);
+  updatePagination(count||0);
 
-renderProducts(normalized);
-updatePagination(count || 0);
+  if (error) {
+    console.error("loadProducts error", error);
+    return;
+  }
+  
 
+  renderProducts(data||[]);
+  updatePagination(count||0);
 }
 
 
@@ -1290,7 +1197,6 @@ if(!isOnline() || !supabaseOK){
 // ==========================
 // BEST SELLER MAP (90 HARI)
 // ==========================
-// ❌ DEPRECATED: TIDAK SESUAI BLUEPRINT FINAL
 async function loadBestSellerMap() {
   if (!isOnline()) return {};
 
@@ -1606,21 +1512,12 @@ btnCari.onclick=()=>{ page=1; loadProducts(); };
 searchInput.addEventListener("keydown", async (e) => {
   if (e.key !== "Enter") return;
 
-  const val = searchInput.value.trim();
-  if (!val) return;
+  const barcode = searchInput.value.trim();
+  if (!barcode) return;
 
-  // 👉 BARCODE ONLY: angka & panjang khas scanner
-  const looksLikeBarcode = /^\d{6,}$/.test(val);
-
-  // ❌ BUKAN BARCODE → JANGAN APA-APA
-  if (!looksLikeBarcode) {
-    return; // ⬅️ INI KUNCI UTAMA
-  }
-
-  // ⬇️ BARU DI SINI ENTER DITAHAN
   e.preventDefault();
 
-  const product = await findProductByBarcode(val);
+  const product = await findProductByBarcode(barcode);
 
   if (product) {
     await addToCart(product);
@@ -1628,6 +1525,7 @@ searchInput.addEventListener("keydown", async (e) => {
     searchInput.value = "";
     currentQuery = "";
     page = 1;
+
     loadProducts();
   } else {
     alert("Produk dengan barcode tersebut tidak ditemukan / stok habis");
@@ -2124,19 +2022,14 @@ function buildJubelioPayload(order, items) {
 // ✅ pastikan setiap item di cart punya itemId (anti NaN -> null)
 async function hydrateCartItemIds(){
   for (const item of cart) {
-
-    if (
-      item.itemId !== undefined &&
-      item.itemId !== null &&
-      !Number.isNaN(Number(item.itemId))
-    ) continue;
+    // kalau sudah valid, skip
+    if (item.itemId !== undefined && item.itemId !== null && !Number.isNaN(Number(item.itemId))) continue;
 
     const code = item.itemCode || item.code;
     if (!code) continue;
 
     const { data, error } = await sb
-      .schema("decision")
-      .from("v_inventory_ui")
+      .from("master_items")
       .select("item_id")
       .eq("item_code", code)
       .limit(1)
@@ -2146,18 +2039,15 @@ async function hydrateCartItemIds(){
       item.itemId = data.item_id;
       item.itemCode = code;
       item.code = code;
-    } else {
-      console.warn("⛔ Item tidak valid (tidak ada di inventory UI):", code);
     }
   }
 
-  // ✅ SIMPAN SETELAH LOOP SELESAI
+  // simpan kembali ke localStorage biar permanen
   saveOrderState();
 }
 
-
 async function saveSalesOrderHeader() {
-
+  // ✅ kalau belum ada nomor, buat sekarang (anti error, anti reuse sisa localStorage)
   if (!CURRENT_SALESORDER_NO) {
     CURRENT_SALESORDER_NO = await generateSalesOrderNo();
     updateOrderNumberUI();
@@ -2165,9 +2055,10 @@ async function saveSalesOrderHeader() {
   }
 
   const payload = {
+
     salesorder_no: CURRENT_SALESORDER_NO,
-    cashier_id: CASHIER_ID || "UNKNOWN",
-    cashier_name: CASHIER_NAME || "UNKNOWN",
+	cashier_id: CASHIER_ID || "UNKNOWN",
+	cashier_name: CASHIER_NAME || "UNKNOWN",
     contact_id: ACTIVE_CUSTOMER?.contact_id ?? -1,
     customer_name: ACTIVE_CUSTOMER?.contact_name ?? "Pelanggan Umum",
     shipping_phone: ACTIVE_CUSTOMER?.phone ?? null,
@@ -2179,10 +2070,11 @@ async function saveSalesOrderHeader() {
     store_id: -100,
     is_paid: true,
 
-    jubelio_synced: false,
-    jubelio_synced_at: null,
-    jubelio_error: null,
-    jubelio_payload: null
+// ✅ status sync Jubelio (queue)
+jubelio_synced: false,
+jubelio_synced_at: null,
+jubelio_error: null,
+jubelio_payload: null
   };
 
   const { data, error } = await sb
@@ -2199,7 +2091,6 @@ async function saveSalesOrderHeader() {
 
   return data;
 }
-
 
 
 async function saveSalesOrderItems(salesorderNo) {
