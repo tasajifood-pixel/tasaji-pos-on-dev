@@ -870,25 +870,25 @@ async function loadBestSellerMapFinal(periodKey = "7d") {
   if (!isOnline()) return {};
 
   const { data, error } = await sb
-  .schema("decision")
-  .from("v_best_seller_periods")
-  .select("pcs_item_code,rank_no")
-  .eq("period_key", periodKey);
-const decision = sb.schema("decision");
-
+    .schema("decision")
+    .from("mv_best_seller_ui")
+    .select("pcs_item_code, rank_no")
+    .eq("period_key", periodKey)
+    .lte("rank_no", 100);
 
   if (error) {
-    console.error("loadBestSellerMapFinal error:", error);
+    console.error("BEST SELLER LOAD ERROR:", error);
     return {};
   }
 
   const map = {};
   (data || []).forEach(r => {
-    map[r.pcs_item_code] = r.rank_no;
+    map[String(r.pcs_item_code).toUpperCase()] = Number(r.rank_no);
   });
 
   return map;
 }
+
 
 async function loadProducts() {
   // default sort
