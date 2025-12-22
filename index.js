@@ -2126,8 +2126,12 @@ async function saveSalesOrderHeader() {
   if (!CURRENT_SALESORDER_NO) {
     CURRENT_SALESORDER_NO = await generateSalesOrderNo();
     updateOrderNumberUI();
-    saveOrderState();
-  }
+     // simpan kembali ke localStorage biar permanen
+  saveOrderState();
+} // ⬅️ TUTUP for
+
+} // ⬅️ TUTUP function hydrateCartItemIds
+
 
   const payload = {
 
