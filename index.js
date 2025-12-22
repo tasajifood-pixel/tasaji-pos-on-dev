@@ -999,7 +999,8 @@ const to = from + pageSize - 1;
 // ==========================
 // AMBIL DATA
 // ==========================
-const { data, count, error } = await q.range(from, to);
+const { data: rows, count, error } = await q.range(from, to);
+
 if (error) {
   console.error(error);
   return;
@@ -1028,8 +1029,9 @@ if (filters.hideEmpty) {
 // ==========================
 // RENDER
 // ==========================
-renderProducts(finalList);
+renderProducts(rows || []);
 updatePagination(count || 0);
+
 
    // ==========================
   // BEST SELLER: sort manual
