@@ -1288,28 +1288,30 @@ if(!isOnline() || !supabaseOK){
 // BEST SELLER MAP (90 HARI)
 // ==========================
 async function loadBestSellerMap() {
+  // OFFLINE → tidak ada best seller
   if (!isOnline()) return {};
 
-  const { data, error } = await sb
-  .from("product_best_sellers")       // ✅ BENAR
-  .select("item_code, rank_no")
-  .eq("period_key", BEST_SELLER_PERIOD || "90d");
+  try {
+    const { data, error } = await sb
+      .schema("decision")
+      .from("mv_best_seller_ui")   // ✅ SSOT UI
+      .select("item_code, rank_no")
+      .eq("period_key", BEST_SELLER_PERIOD || "90d");
 
+    if (error) throw error;
 
-  if (error) {
-    console.error("loadBestSellerMap error", error);
+    const map = {};
+    (data || []).forEach(r => {
+      map[r.item_code] = Number(r.rank_no);
+    });
+
+    return map;
+
+  } catch (err) {
+    console.error("❌ loadBestSellerMap error:", err);
     return {};
   }
-
-  const map = {};
-  (data || []).forEach(r => {
-    map[r.item_code] = r.rank_no;
-  });
-
-  return map;
 }
-
-
 
 /* =====================================================
    RENDER PRODUCTS
