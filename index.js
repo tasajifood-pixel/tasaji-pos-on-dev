@@ -1296,14 +1296,14 @@ async function loadBestSellerMap() {
     const { data, error } = await sb
       .schema("decision")
       .from("mv_best_seller_ui")   // ✅ SSOT UI
-      .select("item_code, rank_no")
+      .select("pcs_item_code, rank_no")
       .eq("period_key", BEST_SELLER_PERIOD || "90d");
 
     if (error) throw error;
 
     const map = {};
     (data || []).forEach(r => {
-      map[r.item_code] = Number(r.rank_no);
+      map[r.pcs_item_code] = Number(r.rank_no);
     });
 
     return map;
@@ -1313,7 +1313,6 @@ async function loadBestSellerMap() {
     return {};
   }
 }
-
 
 
 /* =====================================================
