@@ -625,29 +625,31 @@ document.addEventListener("click", (e) => {
 async function findProductByBarcode(barcode) {
   if (!barcode) return null;
 
- const { data, error } = await sb
-  .schema("decision")
-  .from("v_inventory_ui")
-  .select(`
-    item_id,
-    item_code,
-    item_name,
-    thumbnail,
-    barcode,
-    stok_tersedia
-  `)
-  .eq("barcode", barcode)
-  .limit(1)
-  .single();
-if (error || !data) return null;
+  const { data, error } = await sb
+    .schema("decision")
+    .from("v_inventory_ui")
+    .select(`
+      item_id,
+      item_code,
+      item_name,
+      thumbnail,
+      barcode,
+      stok_tersedia
+    `)
+    .eq("barcode", barcode)
+    .limit(1)
+    .single();
 
-const product = {
-  ...data,
-  available_qty: Number(data.stok_tersedia || 0)
-};
+  if (error || !data) return null;
 
-if (product.available_qty <= 0 && filters.requireStock) return null;
-return product;
+  const product = {
+    ...data,
+    available_qty: Number(data.stok_tersedia || 0)
+  };
+
+  if (product.available_qty <= 0 && filters.requireStock) return null;
+  return product;
+} // ✅ INI YANG HILANG
 
 
 
