@@ -595,14 +595,14 @@ CURRENT_HOLD_ID = h.id; // ✅ tandai sedang buka hold ini
   }
 
   // balik ke penjualan
-  switchLeftTab("sales");
+  if (panelPayment) {
   panelPayment.style.display = "none";
-  panelProduct.style.display = "flex";
-  btnNext.style.display = "block";
-
-  updateSwitchCashierButton();
-  closeHoldModal();
+  panelPayment.dataset.active = "0";
 }
+
+if (panelProduct) panelProduct.style.display = "flex";
+if (btnNext) btnNext.style.display = "block";
+
 
 function deleteHold(id){
   if(!confirm("Hapus transaksi tersimpan ini?")) return;
