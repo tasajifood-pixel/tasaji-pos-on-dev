@@ -1279,7 +1279,7 @@ if(!isOnline() || !supabaseOK){
 async function loadBestSellerMap() {
   if (!isOnline()) return {};
 
-  const { data, error } = await sb
+ const { data: allData, error } = await q;
   .from("product_best_sellers")       // ✅ BENAR
   .select("item_code, rank_no")
   .eq("period_key", BEST_SELLER_PERIOD || "90d");
