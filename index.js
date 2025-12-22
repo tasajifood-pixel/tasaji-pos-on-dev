@@ -1541,28 +1541,35 @@ function calcItemCount(){
 }
 
 function renderCart(){
-  cartItems.innerHTML="";
+
+  // ⛔ GUARD DOM UTAMA
+  if (!cartItems) {
+    console.warn("renderCart skipped: cartItems not found");
+    return;
+  }
+
+  cartItems.innerHTML = "";
+
   const total = calcTotal();
   const count = calcItemCount();
 
-  if(!cart.length){
-  cartItems.innerHTML = `
-    <div style="
-      padding:12px;
-      color:#999;
-      font-size:13px;
-      text-align:center;
-    ">
-      Belum ada item di transaksi
-    </div>
-  `;
-}
+  if (!cart.length) {
+    cartItems.innerHTML = `
+      <div style="
+        padding:12px;
+        color:#999;
+        font-size:13px;
+        text-align:center;
+      ">
+        Belum ada item di transaksi
+      </div>
+    `;
+  }
 
-
-  cart.forEach(i=>{
-    const el=document.createElement("div");
-    el.className="cart-item";
-    el.innerHTML=`
+  cart.forEach(i => {
+    const el = document.createElement("div");
+    el.className = "cart-item";
+    el.innerHTML = `
       <div class="cart-item-price">${formatRupiah(i.price)}</div>
       <div class="cart-item-name">${i.name}</div>
       <div class="cart-item-code">${i.code}</div>
@@ -1577,11 +1584,17 @@ function renderCart(){
     cartItems.appendChild(el);
   });
 
-  itemCount.textContent=count;
-  cartSubtotal.textContent=formatRupiah(total);
-  cartTotal.textContent=formatRupiah(total);
-  updateSwitchCashierButton(); // ✅ tambah ini
+  // ✅ UPDATE TOTALS (GUARDED)
+  if (itemCount) itemCount.textContent = count;
+  if (cartSubtotal) cartSubtotal.textContent = formatRupiah(total);
+  if (cartTotal) cartTotal.textContent = formatRupiah(total);
+
+  // OPTIONAL
+  if (typeof updateSwitchCashierButton === "function") {
+    updateSwitchCashierButton();
+  }
 }
+
 
 /* =====================================================
    CUSTOMER AUTOCOMPLETE
