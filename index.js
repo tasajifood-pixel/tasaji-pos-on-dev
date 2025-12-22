@@ -1608,20 +1608,17 @@ searchInput.addEventListener("keydown", async (e) => {
   const val = searchInput.value.trim();
   if (!val) return;
 
-  e.preventDefault();
-
-  // 👉 heuristik barcode: angka & panjang
+  // 👉 BARCODE ONLY: angka & panjang khas scanner
   const looksLikeBarcode = /^\d{6,}$/.test(val);
 
+  // ❌ BUKAN BARCODE → JANGAN APA-APA
   if (!looksLikeBarcode) {
-    // 🔍 BUKAN BARCODE → SEARCH NAMA / KODE
-    currentQuery = val;
-    page = 1;
-    loadProducts();
-    return;
+    return; // ⬅️ INI KUNCI UTAMA
   }
 
-  // 📦 BARCODE MODE
+  // ⬇️ BARU DI SINI ENTER DITAHAN
+  e.preventDefault();
+
   const product = await findProductByBarcode(val);
 
   if (product) {
@@ -1630,7 +1627,6 @@ searchInput.addEventListener("keydown", async (e) => {
     searchInput.value = "";
     currentQuery = "";
     page = 1;
-
     loadProducts();
   } else {
     alert("Produk dengan barcode tersebut tidak ditemukan / stok habis");
