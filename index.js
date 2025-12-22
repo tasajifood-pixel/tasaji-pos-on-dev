@@ -874,6 +874,7 @@ async function loadBestSellerMapFinal(periodKey = "7d") {
   .from("v_best_seller_periods")
   .select("pcs_item_code,rank_no")
   .eq("period_key", periodKey);
+const decision = sb.schema("decision");
 
 
   if (error) {
