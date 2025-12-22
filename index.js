@@ -734,55 +734,74 @@ if (setAutoSyncHours) setAutoSyncHours.value = AUTO_SYNC_HOURS;
 
 function bindSettingsEvents(){
 
-  setHideEmpty.addEventListener("change", () => {
-    filters.hideEmpty = setHideEmpty.checked;
-    localStorage.setItem("filterHideEmpty", filters.hideEmpty ? "1" : "0");
-    page = 1;
-    loadProducts();
-  });
+  if (setHideEmpty) {
+    setHideEmpty.addEventListener("change", () => {
+      filters.hideEmpty = setHideEmpty.checked;
+      localStorage.setItem("filterHideEmpty", filters.hideEmpty ? "1" : "0");
+      page = 1;
+      loadProducts();
+    });
+  }
 
-  setHideKtn.addEventListener("change", () => {
-    filters.hideKtn = setHideKtn.checked;
-    localStorage.setItem("filterHideKtn", filters.hideKtn ? "1" : "0");
-    page = 1;
-    loadProducts();
-  });
+  if (setHideKtn) {
+    setHideKtn.addEventListener("change", () => {
+      filters.hideKtn = setHideKtn.checked;
+      localStorage.setItem("filterHideKtn", filters.hideKtn ? "1" : "0");
+      page = 1;
+      loadProducts();
+    });
+  }
 
-  setReceiptPaper.addEventListener("change", () => {
-    RECEIPT_PAPER = setReceiptPaper.value;
-    localStorage.setItem("setting_receiptPaper", RECEIPT_PAPER);
-  });
+  if (setReceiptPaper) {
+    setReceiptPaper.addEventListener("change", () => {
+      RECEIPT_PAPER = setReceiptPaper.value;
+      localStorage.setItem("setting_receiptPaper", RECEIPT_PAPER);
+    });
+  }
 
-  setStoreName.addEventListener("input", () => {
-    STORE_NAME = setStoreName.value || "TASAJI FOOD";
-    localStorage.setItem("setting_storeName", STORE_NAME);
-  });
+  if (setStoreName) {
+    setStoreName.addEventListener("input", () => {
+      STORE_NAME = setStoreName.value;
+      localStorage.setItem("setting_storeName", STORE_NAME);
+    });
+  }
 
-  setStoreSub.addEventListener("input", () => {
-    STORE_SUB = setStoreSub.value || "Jalan Mandor Demong";
-    localStorage.setItem("setting_storeSub", STORE_SUB);
-  });
-if (setNote1) {
-  setNote1.addEventListener("input", () => {
-    STORE_NOTE_1 = setNote1.value || "";
-    localStorage.setItem("setting_storeNote1", STORE_NOTE_1);
-  });
+  if (setStoreSub) {
+    setStoreSub.addEventListener("input", () => {
+      STORE_SUB = setStoreSub.value;
+      localStorage.setItem("setting_storeSub", STORE_SUB);
+    });
+  }
+
+  if (setShiftX) {
+    setShiftX.addEventListener("input", () => {
+      const val = Number(setShiftX.value);
+      if (!Number.isNaN(val)) applyShiftX(val);
+    });
+  }
+
+  if (setNote1) {
+    setNote1.addEventListener("input", () => {
+      STORE_NOTE_1 = setNote1.value;
+      localStorage.setItem("setting_storeNote1", STORE_NOTE_1);
+    });
+  }
+
+  if (setNote2) {
+    setNote2.addEventListener("input", () => {
+      STORE_NOTE_2 = setNote2.value;
+      localStorage.setItem("setting_storeNote2", STORE_NOTE_2);
+    });
+  }
+
+  if (setAutoSyncHours) {
+    setAutoSyncHours.addEventListener("change", () => {
+      AUTO_SYNC_HOURS = Number(setAutoSyncHours.value) || 3;
+      localStorage.setItem("setting_autoSyncHours", AUTO_SYNC_HOURS);
+    });
+  }
 }
 
-if (setNote2) {
-  setNote2.addEventListener("input", () => {
-    STORE_NOTE_2 = setNote2.value || "";
-    localStorage.setItem("setting_storeNote2", STORE_NOTE_2);
-  });
-}
-const setAuto = document.getElementById("setAutoSyncHours");
-if (setAutoSyncHours) {
-  setAutoSyncHours.addEventListener("input", () => {
-    const v = Math.max(1, Number(setAutoSyncHours.value || 1));
-    AUTO_SYNC_HOURS = v;
-    localStorage.setItem("setting_autoSyncHours", String(v));
-  });
-}
 
 
   setShiftX.addEventListener("input", () => {
