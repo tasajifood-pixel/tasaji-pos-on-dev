@@ -734,10 +734,33 @@ if (setAutoSyncHours) setAutoSyncHours.value = AUTO_SYNC_HOURS;
 
 function bindSettingsEvents(){
 
+  if (setShiftX) {
+    setShiftX.addEventListener("input", () => {
+      const v = Number(setShiftX.value || 0);
+      localStorage.setItem("setting_shiftX", String(v));
+      applyShiftX(v);
+    });
+  }
+
+  if (setRequireStock) {
+    setRequireStock.addEventListener("change", () => {
+      filters.requireStock = setRequireStock.checked;
+      localStorage.setItem(
+        "filterRequireStock",
+        filters.requireStock ? "1" : "0"
+      );
+      page = 1;
+      loadProducts();
+    });
+  }
+
   if (setHideEmpty) {
     setHideEmpty.addEventListener("change", () => {
       filters.hideEmpty = setHideEmpty.checked;
-      localStorage.setItem("filterHideEmpty", filters.hideEmpty ? "1" : "0");
+      localStorage.setItem(
+        "filterHideEmpty",
+        filters.hideEmpty ? "1" : "0"
+      );
       page = 1;
       loadProducts();
     });
@@ -746,7 +769,10 @@ function bindSettingsEvents(){
   if (setHideKtn) {
     setHideKtn.addEventListener("change", () => {
       filters.hideKtn = setHideKtn.checked;
-      localStorage.setItem("filterHideKtn", filters.hideKtn ? "1" : "0");
+      localStorage.setItem(
+        "filterHideKtn",
+        filters.hideKtn ? "1" : "0"
+      );
       page = 1;
       loadProducts();
     });
@@ -755,53 +781,63 @@ function bindSettingsEvents(){
   if (setReceiptPaper) {
     setReceiptPaper.addEventListener("change", () => {
       RECEIPT_PAPER = setReceiptPaper.value;
-      localStorage.setItem("setting_receiptPaper", RECEIPT_PAPER);
+      localStorage.setItem(
+        "setting_receiptPaper",
+        RECEIPT_PAPER
+      );
     });
   }
 
   if (setStoreName) {
     setStoreName.addEventListener("input", () => {
       STORE_NAME = setStoreName.value;
-      localStorage.setItem("setting_storeName", STORE_NAME);
+      localStorage.setItem(
+        "setting_storeName",
+        STORE_NAME
+      );
     });
   }
 
   if (setStoreSub) {
     setStoreSub.addEventListener("input", () => {
       STORE_SUB = setStoreSub.value;
-      localStorage.setItem("setting_storeSub", STORE_SUB);
-    });
-  }
-
-  if (setShiftX) {
-    setShiftX.addEventListener("input", () => {
-      const val = Number(setShiftX.value);
-      if (!Number.isNaN(val)) applyShiftX(val);
+      localStorage.setItem(
+        "setting_storeSub",
+        STORE_SUB
+      );
     });
   }
 
   if (setNote1) {
     setNote1.addEventListener("input", () => {
       STORE_NOTE_1 = setNote1.value;
-      localStorage.setItem("setting_storeNote1", STORE_NOTE_1);
+      localStorage.setItem(
+        "setting_storeNote1",
+        STORE_NOTE_1
+      );
     });
   }
 
   if (setNote2) {
     setNote2.addEventListener("input", () => {
       STORE_NOTE_2 = setNote2.value;
-      localStorage.setItem("setting_storeNote2", STORE_NOTE_2);
+      localStorage.setItem(
+        "setting_storeNote2",
+        STORE_NOTE_2
+      );
     });
   }
 
   if (setAutoSyncHours) {
     setAutoSyncHours.addEventListener("change", () => {
       AUTO_SYNC_HOURS = Number(setAutoSyncHours.value) || 3;
-      localStorage.setItem("setting_autoSyncHours", AUTO_SYNC_HOURS);
+      localStorage.setItem(
+        "setting_autoSyncHours",
+        AUTO_SYNC_HOURS
+      );
     });
   }
 }
-
 
 
   setShiftX.addEventListener("input", () => {
@@ -816,8 +852,6 @@ function bindSettingsEvents(){
     page = 1;
     loadProducts();
   });
-
-}
 
 function loadFilterSettings(){
   const savedHideEmpty = localStorage.getItem("filterHideEmpty");
