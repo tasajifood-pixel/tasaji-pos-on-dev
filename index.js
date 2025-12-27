@@ -1443,10 +1443,11 @@ if (!outOfStock || !requireStock) {
       </div>
       <div class="product-footer">
         <div class="product-price">
-  <span class="price-tooltip-wrap">
-    ${formatRupiah(getFinalPrice(p.item_code, 1))}
-    <span class="price-tooltip-box">${buildPriceBookTooltip(p.item_code)}</span>
-  </span>
+  <span class="price-tooltip-wrap" data-tooltip>
+  ${formatRupiah(getFinalPrice(p.item_code, 1))}
+  <span class="price-tooltip-box">${buildPriceBookTooltip(p.item_code)}</span>
+</span>
+
 </div>
 
         <div class="product-stock">Stok ${p.available_qty}</div>
@@ -1456,6 +1457,7 @@ if (!outOfStock || !requireStock) {
 
   // ✅ apply short / normal SETELAH render selesai
   applyProductViewMode();
+	attachPriceTooltipPositioning();
 }
 
 
@@ -1727,10 +1729,13 @@ function renderCart(){
       </div>
     `;
     itemCount.textContent=count;
-    cartSubtotal.textContent=formatRupiah(total);
-    cartTotal.textContent=formatRupiah(total);
-	  attachPriceTooltipPositioning();
-    updateSwitchCashierButton();
+cartSubtotal.textContent=formatRupiah(total);
+cartTotal.textContent=formatRupiah(total);
+updateSwitchCashierButton();
+
+// ✅ wajib dipanggil tiap render
+attachPriceTooltipPositioning();
+
     return;
   }
 
