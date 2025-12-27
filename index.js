@@ -1742,8 +1742,6 @@ function removePayLine(idx){
 }
 
 document.querySelectorAll(".pay-method-btn").forEach(btn => {
-  if (btn.dataset.bound === "1") return;   // ✅ guard
-  btn.dataset.bound = "1";
 
   btn.addEventListener("click", () => {
 
@@ -1891,9 +1889,13 @@ function backToEdit() {
   setActiveTabBtn("sales");
   panelPayment.style.display = "none";
   panelProduct.style.display = "flex";
+
+  // ✅ INI PENTING
   btnNext.style.display = "block";
+
   panelPayment.dataset.active = "0";
 }
+
 
 async function saveJubelioPayloadToOrder(salesorderNo, payloadObj){
   const { error } = await sb
