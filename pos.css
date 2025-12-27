@@ -1425,125 +1425,67 @@ body{
   color:#92400e;
 }
 
-/* =========================
-   TIER PRICE TOOLTIP (BAGUS)
-========================= */
-
-.tier-price{
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border-radius: 10px;
-  font-weight: 800;
-  font-size: 14px;
-  color: #111;
-  background: #f7f7f7;
-  border: 1px solid #ededed;
-  cursor: default;
+.product-price.has-price-tooltip{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  cursor:help;
 }
 
-.tier-price .tier-info{
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 900;
-  color: #111;
-  background: #fff;
-  border: 1px solid #e5e5e5;
-  cursor: pointer;
-  user-select: none;
+.product-price.has-price-tooltip .price-tooltip{
+  position:absolute;
+  right:0;
+  top:100%;
+  margin-top:8px;
+  width:260px;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  box-shadow:0 14px 40px rgba(0,0,0,.12);
+  padding:10px 12px;
+  font-size:12px;
+  line-height:1.3;
+  color:#111;
+  z-index:9999;
+
+  opacity:0;
+  transform:translateY(6px);
+  pointer-events:none;
+  transition:.15s ease;
 }
 
-/* Tooltip bubble */
-.tier-tooltip{
-  position: absolute;
-  left: 0;
-  bottom: calc(100% + 10px);
-  min-width: 220px;
-  max-width: 260px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: #111;
-  color: #fff;
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 12px 28px rgba(0,0,0,0.25);
-  z-index: 50;
-
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(6px);
-  transition: all .14s ease;
+.product-price.has-price-tooltip:hover .price-tooltip{
+  opacity:1;
+  transform:translateY(0);
+  pointer-events:auto;
 }
 
-/* Panah tooltip */
-.tier-tooltip::after{
-  content: "";
-  position: absolute;
-  left: 18px;
-  top: 100%;
-  width: 0;
-  height: 0;
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-top: 8px solid #111;
+.price-tooltip .pt-row{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:3px 0;
 }
 
-/* Show on hover (desktop) */
-.tier-price:hover .tier-tooltip{
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
+.price-tooltip .pt-row span{
+  color:#555;
+  font-weight:600;
 }
 
-/* Show on tap (mobile) via class */
-.tier-price.open .tier-tooltip{
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
+.price-tooltip .pt-row b{
+  color:#111;
+  font-weight:800;
+  white-space:nowrap;
 }
 
-/* Tooltip header */
-.tier-tooltip .tier-title{
-  font-weight: 900;
-  font-size: 13px;
-  margin-bottom: 8px;
+.price-tooltip .pt-sep{
+  height:1px;
+  background:#eee;
+  margin:8px 0;
 }
 
-/* List */
-.tier-tooltip ul{
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 6px;
-}
-
-.tier-tooltip li{
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 12.5px;
-}
-
-.tier-tooltip .tier-qty{
-  color: rgba(255,255,255,0.75);
-  font-weight: 700;
-}
-
-.tier-tooltip .tier-val{
-  font-weight: 900;
-  white-space: nowrap;
-}
-
-/* Highlight tier aktif (opsional JS nanti isi class active) */
-.tier-tooltip li.active{
-  background: rgba(255,255,255,0.10);
-  border-radius: 10px;
-  padding: 6px 8px;
+.price-tooltip small{
+  font-size:11px;
+  font-weight:700;
+  color:#666;
 }
