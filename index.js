@@ -1742,6 +1742,9 @@ function removePayLine(idx){
 }
 
 document.querySelectorAll(".pay-method-btn").forEach(btn => {
+  if (btn.dataset.bound === "1") return;   // ✅ guard
+  btn.dataset.bound = "1";
+
   btn.addEventListener("click", () => {
 
     resetPaymentLines();
