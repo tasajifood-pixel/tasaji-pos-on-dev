@@ -1347,6 +1347,59 @@ if(!PACKING_MAP || Object.keys(PACKING_MAP).length === 0){
 
   return lines.filter(Boolean).join("\n");
 }
+function buildPriceBookTooltipHtml(itemCode){
+  if(!itemCode) return "";
+
+  // pastikan PACKING_MAP ada (online/offline)
+  if(!PACKING_MAP || Object.keys(PACKING_MAP).length === 0){
+    PACKING_MAP = loadPackingMapCache();
+  }
+
+  const pcsPerKarton = Number(PACKING_MAP?.[itemCode] || 0);
+
+  const umum     = getTierPrice(itemCode, "umum");
+  const member   = getTierPrice(itemCode, "member");
+  const reseller = getTierPrice(itemCode, "reseller");
+  const agen     = getTierPrice(itemCode, "agen");
+  const lv1      = getTierPrice(itemCode, "lv1_pcs");
+
+  const fmt = (n) => (n === null ? "-" : formatRupiah(n));
+
+  const totalKarton = (hargaPcs) => {
+    if(!pcsPerKarton || pcsPerKarton <= 0) return "-";
+    if(hargaPcs === null) return "-";
+    return formatRupiah(hargaPcs * pcsPerKarton);
+  };
+
+  const rows = [];
+
+  // tier utama
+  rows.push(`<div class="pt-row"><span>Umum</span><b>${fmt(umum)}</b></div>`);
+  rows.push(`<div class="pt-row"><span>Member</span><b>${fmt(member)}</b></div>`);
+  rows.push(`<div class="pt-row"><span>Reseller <small>(min 2)</small></span><b>${fmt(reseller)}</b></div>`);
+  rows.push(`<div class="pt-row"><span>Agen <small>(min 3)</small></span><b>${fmt(agen)}</b></div>`);
+
+  // lv1 dan karton
+  if(lv1 !== null){
+    rows.push(`<div class="pt-sep"></div>`);
+
+    // harga pcs
+    rows.push(`<div class="pt-row"><span>Harga / pcs</span><b>${fmt(lv1)}</b></div>`);
+
+    // harga karton (kalau ada)
+    if(pcsPerKarton){
+      rows.push(`<div class="pt-row"><span>Karton (${pcsPerKarton} pcs)</span><b>${totalKarton(lv1)}</b></div>`);
+    }
+  } else {
+    // kalau lv1 gak ada, tapi karton ada → info isi karton
+    if(pcsPerKarton){
+      rows.push(`<div class="pt-sep"></div>`);
+      rows.push(`<div class="pt-row"><span>Karton</span><b>${pcsPerKarton} pcs</b></div>`);
+    }
+  }
+
+  return rows.join("");
+}
 
 /* =====================================================
    LOAD CUSTOMERS
@@ -1451,10 +1504,16 @@ if (!outOfStock || !requireStock) {
         <div class="product-name">${p.item_name}</div>
       </div>
       <div class="product-footer">
-        <div class="product-price"
-     title="${buildPriceBookTooltip(p.item_code)}">
-  ${formatRupiah(getFinalPrice(p.item_code, 1))}
+       <div class="product-price has-price-tooltip">
+  <span class="price-main">
+    ${formatRupiah(getFinalPrice(p.item_code, 1))}
+  </span>
+
+  <div class="price-tooltip">
+    ${buildPriceBookTooltipHtml(p.item_code)}
+  </div>
 </div>
+
 
 
         <div class="product-stock">Stok ${p.available_qty}</div>
