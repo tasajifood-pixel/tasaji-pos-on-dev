@@ -398,18 +398,17 @@ function buildPriceBookTooltip(itemCode){
   // isi karton
   const pcsPerKarton = Number(PACKING_MAP?.[itemCode] || 0);
 
-  // ambil semua tier
+  // ambil tier utama
   const umum     = getTierPrice(itemCode, "umum");
   const member   = getTierPrice(itemCode, "member");
   const reseller = getTierPrice(itemCode, "reseller");
   const agen     = getTierPrice(itemCode, "agen");
 
+  // ambil lv1 saja (lv2/lv3 tidak dipakai)
   const lv1 = getTierPrice(itemCode, "lv1_pcs");
 
-  // fallback kalau tier gak ada
   const fmt = (n) => (n === null ? "-" : formatRupiah(n));
 
-  // total karton per level (kalau pcsPerKarton ada)
   const totalKarton = (hargaPcs) => {
     if(!pcsPerKarton || pcsPerKarton <= 0) return "-";
     if(hargaPcs === null) return "-";
@@ -418,26 +417,36 @@ function buildPriceBookTooltip(itemCode){
 
   const lines = [];
 
+  // tier utama
   lines.push(`Umum: ${fmt(umum)}`);
   lines.push(`Member: ${fmt(member)}`);
   lines.push(`Reseller (min 2): ${fmt(reseller)}`);
   lines.push(`Agen (min 3): ${fmt(agen)}`);
-// tampilkan lv pcs hanya kalau ada datanya
-if (lv1 !== null) {
-  lines.push(`---`);
-  // tampilkan HANYA lv1, tanpa teks "Lv1 /pcs:"
-  lines.push(`${fmt(lv1)} ${pcsPerKarton ? `| Karton (${pcsPerKarton} pcs): ${totalKarton(lv1)}` : ""}`);
-} else {
-  // kalau lv1 gak ada, tapi karton ada → minimal kasih info isi karton
-  if (pcsPerKarton) {
+
+  // hanya tampilkan lv1 (tanpa teks "Lv1 /pcs:")
+  if (lv1 !== null) {
     lines.push(`---`);
-    lines.push(`Isi Karton: ${pcsPerKarton} pcs`);
+
+    // Baris utama: harga pcs
+    let extra = "";
+
+    // Kalau ada karton → tampilkan harga karton
+    if (pcsPerKarton) {
+      extra = ` | Karton (${pcsPerKarton} pcs): ${totalKarton(lv1)}`;
+    }
+
+    lines.push(`${fmt(lv1)}${extra}`);
+  } else {
+    // kalau lv1 gak ada, tapi karton ada → info isi karton saja
+    if (pcsPerKarton) {
+      lines.push(`---`);
+      lines.push(`Karton: ${pcsPerKarton} pcs`);
+    }
   }
+
+  return lines.filter(Boolean).join("\n");
 }
 
-// bersihkan biar ga ada "null"
-return lines.filter(Boolean).join("\n");
-}
 // ==============================
 // MANUAL PRICE EDIT (INLINE)
 // ==============================
