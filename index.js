@@ -395,14 +395,12 @@ function roundUp(n, step){
 function getQuickCashStep(total){
   const t = Number(total || 0);
 
-  // aturan kasir: minimal step 500 (abaikan 100/200)
-  if (t < 10000) return 500;       // 0 - 9.999
-  if (t < 50000) return 5000;      // 10.000 - 49.999  (lebih kasir banget)
-  if (t < 100000) return 10000;    // 50.000 - 99.999
-  if (t < 200000) return 20000;    // 100.000 - 199.999
-  if (t < 500000) return 50000;    // 200.000 - 499.999
-  return 100000;                   // >= 500.000
+  // start 500 (abaikan 100/200)
+  if (t < 10000) return 500;        // 0 - 9.999
+  if (t < 50000) return 5000;       // 10.000 - 49.999
+  return 10000;                     // >= 50.000 selalu step 10.000 (lebih kasir banget)
 }
+
 
 function buildQuickCashOptions(total){
   const t = Number(total || 0);
@@ -410,23 +408,23 @@ function buildQuickCashOptions(total){
 
   const step = getQuickCashStep(t);
 
-  // A: pembulatan paling dekat di atas total (mulai 500)
-  const A = roundUp(t, step);
+  const A = roundUp(t, step);        // pembulatan terdekat di atas total
+  const B = A + step;                // +10k
+  const C = A + (2 * step);          // +20k
 
-  // B: +1 step (lebih aman)
-  const B = A + step;
+  // Pecahan besar untuk "bayar gampang"
+  const bigChoices = [50000, 100000, 200000, 500000, 1000000, 2000000];
+  let D = bigChoices.find(x => x >= t) || (C + step);
 
-  // C: pecahan besar yang "umum" (paket)
-  // pilih pecahan besar yang paling dekat di atas total
-  const bigChoices = [10000, 20000, 50000, 100000, 200000, 500000, 1000000, 2000000];
-  let C = bigChoices.find(x => x >= t) || (A + (2 * step));
+  // kalau D terlalu dekat (misalnya t=180k, D=200k, sama dgn C), naikkan 1 level lagi
+  if ([A, B, C].includes(D)) {
+    const idx = bigChoices.indexOf(D);
+    if (idx >= 0 && idx < bigChoices.length - 1) D = bigChoices[idx + 1];
+  }
 
-  // kalau C terlalu kecil (misal total 78k, C=100k oke)
-  if (C < B) C = B + step;
-
-  // hasil final (unik)
-  return Array.from(new Set([A, B, C]));
+  return Array.from(new Set([A, B, C, D]));
 }
+
 function renderQuickCashButtons(){
   const box = document.getElementById("quickCash");
   if (!box) return;
