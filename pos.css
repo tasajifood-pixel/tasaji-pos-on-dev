@@ -1425,54 +1425,58 @@ body{
   color:#92400e;
 }
 /* =========================
-   TOOLTIP BUKU HARGA (JUBELIO STYLE)
+   TOOLTIP BUKU HARGA (FINAL)
 ========================= */
 .price-tooltip-wrap{
-  position: relative;
-  display: inline-flex;
-  align-items: center;
+  position:relative;
+  display:inline-block;
 }
 
-/* tooltip box */
+/* tooltip default disembunyikan */
 .price-tooltip-box{
-  display: none;
-  position: fixed;     /* penting biar gak kepotong container */
-  z-index: 99999;
+  display:none;
+  position:absolute;
+  z-index:999999;
 
-  min-width: 240px;
-  max-width: 360px;
+  min-width:260px;
+  max-width:340px;
+  background:#111;
+  color:#fff;
+  padding:12px 14px;
+  border-radius:12px;
 
-  background: #111;
-  color: #fff;
-
-  padding: 12px 14px;
-  border-radius: 12px;
-
-  font-size: 13px;
-  line-height: 1.45;
-  font-weight: 600;
-
-  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
-
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-
-  max-height: 260px;
-  overflow: auto;
+  font-size:13px;
+  line-height:1.5;
+  box-shadow:0 14px 40px rgba(0,0,0,.28);
+  white-space:pre-line;
 }
 
-/* panah kecil: sekarang di ATAS (karena tooltip muncul di bawah) */
+/* class show dari JS */
+.price-tooltip-box.show{
+  display:block;
+}
+
+/* panah default: arah ke kanan */
 .price-tooltip-box::after{
   content:"";
   position:absolute;
-  left: calc(100% - 26px); /* panah dekat sisi kanan tooltip (mengarah ke harga) */
-  bottom: 100%;
-  border-width: 8px;
-  border-style: solid;
-  border-color: transparent transparent #111 transparent;
+  top:18px;
+  left:100%;
+  border-width:7px;
+  border-style:solid;
+  border-color:transparent transparent transparent #111;
 }
 
-.price-tooltip-wrap:hover .price-tooltip-box{
-  display: block;
+/* kalau tooltip ditaruh kanan (pakai left:110%), panah harus ke kiri */
+.price-tooltip-box[style*="left: 110%"]::after{
+  left:auto;
+  right:100%;
+  border-color:transparent #111 transparent transparent;
+}
+
+/* agar gak ketutup container manapun */
+.cart-panel,
+.cart-items,
+.cart-item{
+  overflow:visible !important;
 }
