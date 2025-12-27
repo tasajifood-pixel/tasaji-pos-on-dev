@@ -832,11 +832,23 @@ function switchLeftTab(key){
 
   
 
+if (key === "sales") {
+  const isPaying = (panelPayment?.dataset?.active === "1");
 
-  if (key === "sales") {
+  // kalau sedang payment, jangan paksain balik ke produk
+  if (isPaying) {
+    panelPayment.style.display = "block";
+    panelProduct.style.display = "none";
+    if (btnNext) btnNext.style.display = "none";
+  } else {
     panelProduct.style.display = "flex";
-    if (cartPanel) cartPanel.style.display = "flex";
+    panelPayment.style.display = "none";
+    if (btnNext) btnNext.style.display = "block";
   }
+
+  if (cartPanel) cartPanel.style.display = "flex";
+}
+
 if (key === "txn") {
   panelTransactions.style.display = "flex";
   if (cartPanel) cartPanel.style.display = "none";
@@ -1741,38 +1753,41 @@ function removePayLine(idx){
   recalcPaymentStatus();
 }
 
-document.querySelectorAll(".pay-method-btn").forEach(btn => {
 
-  btn.addEventListener("click", () => {
+function bindPaymentMethodButtons(){
+  document.querySelectorAll(".pay-method-btn").forEach(btn => {
+    if (btn.dataset.bound === "1") return;   // ✅ guard anti dobel bind
+    btn.dataset.bound = "1";
 
-    resetPaymentLines();
+    btn.addEventListener("click", () => {
 
-    cashInput.value = "";
-    changeOutput.textContent = formatRupiah(0);
+      resetPaymentLines();
 
-    document.querySelectorAll(".pay-method-btn")
-      .forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
+      cashInput.value = "";
+      changeOutput.textContent = formatRupiah(0);
 
-    selectedPaymentMethod = btn.dataset.method;
+      document.querySelectorAll(".pay-method-btn")
+        .forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
 
-    if (selectedPaymentMethod === "cash") {
-      cashInput.disabled = false;
-      cashInput.readOnly = false;
-      cashInput.focus();
+      selectedPaymentMethod = btn.dataset.method;
 
-      if (quickCash) quickCash.style.display = "flex";
-    } else {
-      cashInput.disabled = true;
-      cashInput.readOnly = true;
+      if (selectedPaymentMethod === "cash") {
+        cashInput.disabled = false;
+        cashInput.readOnly = false;
+        cashInput.focus();
+        if (quickCash) quickCash.style.display = "flex";
+      } else {
+        cashInput.disabled = true;
+        cashInput.readOnly = true;
+        if (quickCash) quickCash.style.display = "none";
+        addNonCashLine(selectedPaymentMethod);
+      }
 
-      if (quickCash) quickCash.style.display = "none";
-      addNonCashLine(selectedPaymentMethod);
-    }
-
-    recalcPaymentStatus();
+      recalcPaymentStatus();
+    });
   });
-});
+}
 
 async function processPayment() {
   // ==============================
@@ -3090,9 +3105,8 @@ applyBestPeriodUI();
 
   updateSyncStatus(`Auto sync: tiap ${AUTO_SYNC_HOURS} jam`);
   initReportUI();
-
-
-
+bindPaymentMethodButtons();
+	
   // 4️⃣ master data
   await loadPriceMap();
   await loadPackingMap();
