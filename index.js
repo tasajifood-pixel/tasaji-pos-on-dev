@@ -1548,6 +1548,11 @@ searchInput.addEventListener("keydown", async (e) => {
 /* =====================================================
    PAGE SWITCH: CASHIER <-> PAYMENT
 ===================================================== */
+// ✅ TAMBAHKAN INI (WAJIB ADA SEBELUM DIPAKAI)
+function resetPaymentLines(){
+  PAYMENT_LINES = [];
+}
+
 // ===== PAYMENT =====
 async function goToPayment() {
   if (!cart.length) {
