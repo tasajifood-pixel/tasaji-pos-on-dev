@@ -3441,7 +3441,8 @@ function bindBestPeriodButtons(){
    INIT
 ===================================================== */
 
-(async () => {
+document.addEventListener("DOMContentLoaded", async () => {
+
 
   // 1️⃣ load kasir dulu
   loadCashier();
@@ -3500,6 +3501,12 @@ if (isOnline()) {
   page = 1;
   await loadProducts();
   renderCart();
+	// ✅ FIX: paksa rerender cart setelah panel sudah tampil
+setTimeout(() => {
+  renderCart();
+  updateSwitchCashierButton();
+}, 50);
+
   updateOrderNumberUI();
   updateSwitchCashierButton();
 
@@ -3515,7 +3522,7 @@ if (isOnline()) {
   syncOfflineOrdersToServer();
 }
 
-})();
+});
 
 
 // ==============================
