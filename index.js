@@ -422,8 +422,7 @@ function buildPriceBookTooltip(itemCode){
   lines.push(`Member: ${fmt(member)}`);
   lines.push(`Reseller (min 2): ${fmt(reseller)}`);
   lines.push(`Agen (min 3): ${fmt(agen)}`);
-
- // tampilkan lv pcs hanya kalau ada datanya
+// tampilkan lv pcs hanya kalau ada datanya
 if (lv1 !== null) {
   lines.push(`---`);
   // tampilkan HANYA lv1, tanpa teks "Lv1 /pcs:"
@@ -435,18 +434,10 @@ if (lv1 !== null) {
     lines.push(`Isi Karton: ${pcsPerKarton} pcs`);
   }
 }
- else {
-    // kalau lv gak ada, tapi karton ada → minimal kasih info isi karton
-    if (pcsPerKarton) {
-      lines.push(`---`);
-      lines.push(`Isi Karton: ${pcsPerKarton} pcs`);
-    }
-  }
 
-  // bersihkan biar ga ada "null"
-  return lines.filter(Boolean).join("\n");
+// bersihkan biar ga ada "null"
+return lines.filter(Boolean).join("\n");
 }
-
 // ==============================
 // MANUAL PRICE EDIT (INLINE)
 // ==============================
