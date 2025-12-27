@@ -1741,18 +1741,33 @@ function addNonCashLine(method){
   recalcPaymentStatus();
 }
 
-
-
 function removePayLine(idx){
-  const removed = PAYMENT_LINES[idx];
-  PAYMENT_LINES.splice(idx,1);
+  // ✅ SINGLE PAYMENT MODE: kalau dihapus → reset seluruh payment
+  PAYMENT_LINES = [];
 
-  if(removed?.method === "cash"){
+  // reset state metode
+  selectedPaymentMethod = null;
+
+  // reset UI metode (tombol aktif hilang)
+  document.querySelectorAll(".pay-method-btn")
+    .forEach(b => b.classList.remove("active"));
+
+  // reset input cash
+  if (cashInput) {
     cashInput.value = "";
+    cashInput.disabled = false;
+    cashInput.readOnly = false;
   }
+
+  // sembunyikan quick cash
+  if (quickCash) quickCash.style.display = "none";
+
+  // reset kembalian
+  if (changeOutput) changeOutput.textContent = formatRupiah(0);
 
   recalcPaymentStatus();
 }
+
 
 
 function bindPaymentMethodButtons(){
