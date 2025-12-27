@@ -1438,10 +1438,13 @@ if (!outOfStock || !requireStock) {
         <div class="product-name">${p.item_name}</div>
       </div>
       <div class="product-footer">
-        <div class="product-price"
-     title="${buildPriceBookTooltip(p.item_code)}">
-  ${formatRupiah(getFinalPrice(p.item_code, 1))}
+        <div class="product-price">
+  <span class="price-tooltip-wrap">
+    ${formatRupiah(getFinalPrice(p.item_code, 1))}
+    <span class="price-tooltip-box">${buildPriceBookTooltip(p.item_code)}</span>
+  </span>
 </div>
+
         <div class="product-stock">Stok ${p.available_qty}</div>
       </div>`;
         productGrid.appendChild(card);
@@ -1734,11 +1737,16 @@ function renderCart(){
     el.innerHTML=`
       <div class="cart-item-price"
      onclick="enablePriceEdit('${i.code}')"
-     style="cursor:pointer; ${isManual ? "color:#e53935;font-weight:800;" : ""}"
-     title="${buildPriceBookTooltip(i.code || i.itemCode)}">
-        ${formatRupiah(i.price)}
-        ${isManual ? `<span style="font-size:11px;margin-left:6px;">(manual)</span>` : ``}
-      </div>
+     style="cursor:pointer; ${isManual ? "color:#e53935;font-weight:800;" : ""}">
+  
+  <span class="price-tooltip-wrap">
+    ${formatRupiah(i.price)}
+    <span class="price-tooltip-box">${buildPriceBookTooltip(i.code || i.itemCode)}</span>
+  </span>
+
+  ${isManual ? `<span style="font-size:11px;margin-left:6px;">(manual)</span>` : ``}
+</div>
+
 
       <div class="cart-item-name">${i.name}</div>
       <div class="cart-item-code">${i.code}</div>
