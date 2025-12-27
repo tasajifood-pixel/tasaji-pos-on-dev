@@ -1338,7 +1338,7 @@ const dropdown = customerDropdown || document.getElementById("customerDropdown")
   if (dropdown) dropdown.style.display = "none";
 
   selectedPaymentMethod = null;
-  PAYMENT_LINES = [];
+  resetPaymentLines();
 
   localStorage.removeItem("pos_cart");
   localStorage.removeItem("pos_customer");
@@ -1580,7 +1580,9 @@ async function goToPayment() {
 
   if (quickCash) quickCash.style.display = "none";
 
-  PAYMENT_LINES = [];
+    PAYMENT_LINES = [];
+  resetPaymentLines();
+
   cashInput.value = "";
   changeOutput.textContent = formatRupiah(0);
 
@@ -1890,6 +1892,7 @@ resetAll();
 }
 
 function backToEdit() {
+	  resetPaymentLines();
   setActiveTabBtn("sales");
   panelPayment.style.display = "none";
   panelProduct.style.display = "flex";
