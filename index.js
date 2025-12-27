@@ -383,6 +383,66 @@ function updateSwitchCashierButton(){
 
 // ===== UTILITIES =====
 const formatRupiah = n => "Rp " + Number(n || 0).toLocaleString("id-ID");
+function getTierPrice(itemCode, key){
+  // pastikan PRICE_MAP sudah ready (offline cache pun bisa)
+  const priceMapReady = PRICE_MAP && Object.keys(PRICE_MAP).length > 0;
+  if (!priceMapReady) PRICE_MAP = loadPriceMapCache();
+
+  const v = PRICE_MAP?.[itemCode]?.[key];
+  return (v !== undefined && v !== null) ? Number(v) : null;
+}
+
+function buildPriceBookTooltip(itemCode){
+  if(!itemCode) return "";
+
+  // isi karton
+  const pcsPerKarton = Number(PACKING_MAP?.[itemCode] || 0);
+
+  // ambil semua tier
+  const umum     = getTierPrice(itemCode, "umum");
+  const member   = getTierPrice(itemCode, "member");
+  const reseller = getTierPrice(itemCode, "reseller");
+  const agen     = getTierPrice(itemCode, "agen");
+
+  const lv1 = getTierPrice(itemCode, "lv1_pcs");
+  const lv2 = getTierPrice(itemCode, "lv2_pcs");
+  const lv3 = getTierPrice(itemCode, "lv3_pcs");
+
+  // fallback kalau tier gak ada
+  const fmt = (n) => (n === null ? "-" : formatRupiah(n));
+
+  // total karton per level (kalau pcsPerKarton ada)
+  const totalKarton = (hargaPcs) => {
+    if(!pcsPerKarton || pcsPerKarton <= 0) return "-";
+    if(hargaPcs === null) return "-";
+    return formatRupiah(hargaPcs * pcsPerKarton);
+  };
+
+  const lines = [];
+
+  lines.push(`Umum: ${fmt(umum)}`);
+  lines.push(`Member: ${fmt(member)}`);
+  lines.push(`Reseller (min 2): ${fmt(reseller)}`);
+  lines.push(`Agen (min 3): ${fmt(agen)}`);
+
+  // tampilkan lv pcs hanya kalau ada datanya
+  if (lv1 !== null || lv2 !== null || lv3 !== null) {
+    lines.push(`---`);
+    lines.push(`Lv1 /pcs: ${fmt(lv1)} ${pcsPerKarton ? `| 1 Karton(${pcsPerKarton} pcs): ${totalKarton(lv1)}` : ""}`);
+    lines.push(`Lv2 /pcs: ${fmt(lv2)} ${pcsPerKarton ? `| 1 Karton(${pcsPerKarton} pcs): ${totalKarton(lv2)}` : ""}`);
+    lines.push(`Lv3 /pcs: ${fmt(lv3)} ${pcsPerKarton ? `| 1 Karton(${pcsPerKarton} pcs): ${totalKarton(lv3)}` : ""}`);
+  } else {
+    // kalau lv gak ada, tapi karton ada → minimal kasih info isi karton
+    if (pcsPerKarton) {
+      lines.push(`---`);
+      lines.push(`Isi Karton: ${pcsPerKarton} pcs`);
+    }
+  }
+
+  // bersihkan biar ga ada "null"
+  return lines.filter(Boolean).join("\n");
+}
+
 // ==============================
 // MANUAL PRICE EDIT (INLINE)
 // ==============================
@@ -1378,10 +1438,10 @@ if (!outOfStock || !requireStock) {
         <div class="product-name">${p.item_name}</div>
       </div>
       <div class="product-footer">
-        <div class="product-price">
+        <div class="product-price"
+     title="${buildPriceBookTooltip(p.item_code)}">
   ${formatRupiah(getFinalPrice(p.item_code, 1))}
 </div>
-
         <div class="product-stock">Stok ${p.available_qty}</div>
       </div>`;
         productGrid.appendChild(card);
@@ -1673,9 +1733,9 @@ function renderCart(){
 
     el.innerHTML=`
       <div class="cart-item-price"
-           onclick="enablePriceEdit('${i.code}')"
-           style="cursor:pointer; ${isManual ? "color:#e53935;font-weight:800;" : ""}"
-           title="Klik untuk edit harga manual">
+     onclick="enablePriceEdit('${i.code}')"
+     style="cursor:pointer; ${isManual ? "color:#e53935;font-weight:800;" : ""}"
+     title="${buildPriceBookTooltip(i.code || i.itemCode)}">
         ${formatRupiah(i.price)}
         ${isManual ? `<span style="font-size:11px;margin-left:6px;">(manual)</span>` : ``}
       </div>
