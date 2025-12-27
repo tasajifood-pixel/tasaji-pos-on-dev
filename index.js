@@ -1742,45 +1742,37 @@ function removePayLine(idx){
 }
 
 document.querySelectorAll(".pay-method-btn").forEach(btn => {
- btn.addEventListener("click", () => {
+  btn.addEventListener("click", () => {
 
-  // 1️⃣ Reset semua payment sebelumnya
-  PAYMENT_LINES = [];
+    resetPaymentLines();
 
-  // 2️⃣ Reset UI cash
-  cashInput.value = "";
-  changeOutput.textContent = formatRupiah(0);
+    cashInput.value = "";
+    changeOutput.textContent = formatRupiah(0);
 
-  // 3️⃣ Set active button
-  document.querySelectorAll(".pay-method-btn")
-    .forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
+    document.querySelectorAll(".pay-method-btn")
+      .forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
 
-  selectedPaymentMethod = btn.dataset.method;
+    selectedPaymentMethod = btn.dataset.method;
 
-  // 4️⃣ Handle berdasarkan metode
-  if (selectedPaymentMethod === "cash") {
+    if (selectedPaymentMethod === "cash") {
+      cashInput.disabled = false;
+      cashInput.readOnly = false;
+      cashInput.focus();
 
-    cashInput.disabled = false;
-    cashInput.readOnly = false;
-    cashInput.focus();
+      if (quickCash) quickCash.style.display = "flex";
+    } else {
+      cashInput.disabled = true;
+      cashInput.readOnly = true;
 
-    if (quickCash) quickCash.style.display = "flex";
+      if (quickCash) quickCash.style.display = "none";
+      addNonCashLine(selectedPaymentMethod);
+    }
 
-  } else {
-
-    cashInput.disabled = true;
-    cashInput.readOnly = true;
-
-    if (quickCash) quickCash.style.display = "none";
-
-    // ⬅️ langsung lunasi sisa dengan metode non-cash
-    addNonCashLine(selectedPaymentMethod);
-  }
-
-  // 5️⃣ Refresh status pembayaran
-  recalcPaymentStatus();
+    recalcPaymentStatus();
+  });
 });
+
 async function processPayment() {
   // ==============================
   // OFFLINE MODE: SIMPAN LOKAL SAJA
