@@ -27,61 +27,60 @@ const sb = window.supabase.createClient(
 /* =====================================================
    DOM REFS
 ===================================================== */
-const panelReport = document.getElementById("panel-report");
+  // ✅ DOM REFS (RUN AFTER DOM READY)
+  panelReport = document.getElementById("panel-report");
+  productGrid = document.getElementById("productGrid");
+  pageInfo = document.getElementById("pageInfo");
+  prevPage = document.getElementById("prevPage");
+  nextPage = document.getElementById("nextPage");
 
-const productGrid = document.getElementById("productGrid");
-const pageInfo = document.getElementById("pageInfo");
-const prevPage = document.getElementById("prevPage");
-const nextPage = document.getElementById("nextPage");
+  searchInput = document.getElementById("searchInput");
+  btnCari = document.getElementById("btnCari");
 
-const searchInput = document.getElementById("searchInput");
-const btnCari = document.getElementById("btnCari");
+  cartItems = document.getElementById("cartItems");
+  itemCount = document.getElementById("itemCount");
+  cartSubtotal = document.getElementById("cartSubtotal");
+  cartTotal = document.getElementById("cartTotal");
+  cartPanel = document.querySelector(".cart-panel");
 
-const cartItems = document.getElementById("cartItems");
-const itemCount = document.getElementById("itemCount");
-const cartSubtotal = document.getElementById("cartSubtotal");
-const cartTotal = document.getElementById("cartTotal");
-const cartPanel = document.querySelector(".cart-panel");
+  panelProduct = document.getElementById("panel-product");
+  panelPayment = document.getElementById("panel-payment");
+  panelTransactions = document.getElementById("panel-transactions");
+  panelSettings = document.getElementById("panel-settings");
 
+  quickCash = document.getElementById("quickCash");
 
-const panelProduct = document.getElementById("panel-product");
-const panelPayment = document.getElementById("panel-payment");
-const panelTransactions = document.getElementById("panel-transactions");
-const panelSettings = document.getElementById("panel-settings");
+  payItemCount = document.getElementById("payItemCount");
+  payTotal = document.getElementById("payTotal");
+  cashInput = document.getElementById("cashInput");
+  changeOutput = document.getElementById("changeOutput");
+  btnNext = document.getElementById("btnNext");
 
-const quickCash = document.getElementById("quickCash");
+  payLinesList = document.getElementById("payLinesList");
+  payRemaining = document.getElementById("payRemaining");
+  btnFinishPayment = document.getElementById("btnFinishPayment");
 
-const payItemCount = document.getElementById("payItemCount");
-const payTotal = document.getElementById("payTotal");
-const cashInput = document.getElementById("cashInput");
-const changeOutput = document.getElementById("changeOutput");
-const btnNext = document.getElementById("btnNext");
+  txnSearchInput = document.getElementById("txnSearchInput");
+  txnList = document.getElementById("txnList");
+  txnDetailTitle = document.getElementById("txnDetailTitle");
+  txnDetailSub = document.getElementById("txnDetailSub");
+  txnDetailBody = document.getElementById("txnDetailBody");
+  txnDetailActions = document.getElementById("txnDetailActions");
+  txnDetailBadge = document.getElementById("txnDetailBadge");
 
-const payLinesList = document.getElementById("payLinesList");
-const payRemaining = document.getElementById("payRemaining");
-const btnFinishPayment = document.getElementById("btnFinishPayment");
+  customerInput = document.getElementById("customerInput");
+  customerDropdown = document.getElementById("customerDropdown");
 
-const txnSearchInput = document.getElementById("txnSearchInput");
-const txnList = document.getElementById("txnList");
-const txnDetailTitle = document.getElementById("txnDetailTitle");
-const txnDetailSub = document.getElementById("txnDetailSub");
-const txnDetailBody = document.getElementById("txnDetailBody");
-const txnDetailActions = document.getElementById("txnDetailActions");
-const txnDetailBadge = document.getElementById("txnDetailBadge");
-const customerInput = document.getElementById("customerInput");
-const customerDropdown = document.getElementById("customerDropdown");
-
-/* settings dom */
-const setHideEmpty = document.getElementById("setHideEmpty");
-const setHideKtn = document.getElementById("setHideKtn");
-const setReceiptPaper = document.getElementById("setReceiptPaper");
-const setStoreName = document.getElementById("setStoreName");
-const setStoreSub = document.getElementById("setStoreSub");
-const setShiftX = document.getElementById("setShiftX");
-const setRequireStock = document.getElementById("setRequireStock");
-const setNote1 = document.getElementById("setNote1");
-const setNote2 = document.getElementById("setNote2");
-const setAutoSyncHours = document.getElementById("setAutoSyncHours");
+  setHideEmpty = document.getElementById("setHideEmpty");
+  setHideKtn = document.getElementById("setHideKtn");
+  setReceiptPaper = document.getElementById("setReceiptPaper");
+  setStoreName = document.getElementById("setStoreName");
+  setStoreSub = document.getElementById("setStoreSub");
+  setShiftX = document.getElementById("setShiftX");
+  setRequireStock = document.getElementById("setRequireStock");
+  setNote1 = document.getElementById("setNote1");
+  setNote2 = document.getElementById("setNote2");
+  setAutoSyncHours = document.getElementById("setAutoSyncHours");
 
 
 
@@ -3442,62 +3441,6 @@ function bindBestPeriodButtons(){
 ===================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
-  // ✅ RE-BIND DOM REFS (WAJIB agar tidak null setelah refresh)
-  window.panelReport = document.getElementById("panel-report");
-
-  window.productGrid = document.getElementById("productGrid");
-  window.pageInfo = document.getElementById("pageInfo");
-  window.prevPage = document.getElementById("prevPage");
-  window.nextPage = document.getElementById("nextPage");
-
-  window.searchInput = document.getElementById("searchInput");
-  window.btnCari = document.getElementById("btnCari");
-
-  window.cartItems = document.getElementById("cartItems");
-  window.itemCount = document.getElementById("itemCount");
-  window.cartSubtotal = document.getElementById("cartSubtotal");
-  window.cartTotal = document.getElementById("cartTotal");
-  window.cartPanel = document.querySelector(".cart-panel");
-
-  window.panelProduct = document.getElementById("panel-product");
-  window.panelPayment = document.getElementById("panel-payment");
-  window.panelTransactions = document.getElementById("panel-transactions");
-  window.panelSettings = document.getElementById("panel-settings");
-
-  window.quickCash = document.getElementById("quickCash");
-
-  window.payItemCount = document.getElementById("payItemCount");
-  window.payTotal = document.getElementById("payTotal");
-  window.cashInput = document.getElementById("cashInput");
-  window.changeOutput = document.getElementById("changeOutput");
-  window.btnNext = document.getElementById("btnNext");
-
-  window.payLinesList = document.getElementById("payLinesList");
-  window.payRemaining = document.getElementById("payRemaining");
-  window.btnFinishPayment = document.getElementById("btnFinishPayment");
-
-  window.txnSearchInput = document.getElementById("txnSearchInput");
-  window.txnList = document.getElementById("txnList");
-  window.txnDetailTitle = document.getElementById("txnDetailTitle");
-  window.txnDetailSub = document.getElementById("txnDetailSub");
-  window.txnDetailBody = document.getElementById("txnDetailBody");
-  window.txnDetailActions = document.getElementById("txnDetailActions");
-  window.txnDetailBadge = document.getElementById("txnDetailBadge");
-
-  window.customerInput = document.getElementById("customerInput");
-  window.customerDropdown = document.getElementById("customerDropdown");
-
-  window.setHideEmpty = document.getElementById("setHideEmpty");
-  window.setHideKtn = document.getElementById("setHideKtn");
-  window.setReceiptPaper = document.getElementById("setReceiptPaper");
-  window.setStoreName = document.getElementById("setStoreName");
-  window.setStoreSub = document.getElementById("setStoreSub");
-  window.setShiftX = document.getElementById("setShiftX");
-  window.setRequireStock = document.getElementById("setRequireStock");
-  window.setNote1 = document.getElementById("setNote1");
-  window.setNote2 = document.getElementById("setNote2");
-  window.setAutoSyncHours = document.getElementById("setAutoSyncHours");
-
 
   // 1️⃣ load kasir dulu
   loadCashier();
