@@ -1690,22 +1690,19 @@ function recalcPaymentStatus(){
 }
 
 function upsertCashLine(amount){
-  const idx = PAYMENT_LINES.findIndex(x => x.method === "cash");
-  if(amount <= 0){
-    if(idx >= 0) PAYMENT_LINES.splice(idx,1);
+  // ✅ SINGLE PAYMENT MODE: hanya boleh 1 line
+  if (amount <= 0) {
+    PAYMENT_LINES = [];
     recalcPaymentStatus();
     return;
   }
 
-  if(idx >= 0){
-    PAYMENT_LINES[idx].amount = amount;
-  } else {
-    PAYMENT_LINES.unshift({
-      method:"cash",
-      label: methodLabel("cash"),
-      amount
-    });
-  }
+  PAYMENT_LINES = [{
+    method: "cash",
+    label: methodLabel("cash"),
+    amount: Number(amount || 0)
+  }];
+
   recalcPaymentStatus();
 }
 
@@ -1729,22 +1726,21 @@ function onCashInputChange(){
 
 function addNonCashLine(method){
   const total = calcTotal();
-  if(total <= 0){
+  if (total <= 0) {
     alert("Total masih Rp0. Cek data harga (PRICE_MAP).");
     return;
   }
 
-  const rem = remainingAmount();
-  if(rem <= 0) return;
-
-  PAYMENT_LINES.push({
+  // ✅ SINGLE PAYMENT MODE: non-cash selalu FULL TOTAL
+  PAYMENT_LINES = [{
     method,
     label: methodLabel(method),
-    amount: rem
-  });
+    amount: total
+  }];
 
   recalcPaymentStatus();
 }
+
 
 
 function removePayLine(idx){
