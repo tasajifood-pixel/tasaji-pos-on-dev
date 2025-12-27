@@ -84,7 +84,7 @@ body{
 .pos-main {
   flex: 1;
   display: flex;
-  overflow: visible;
+  overflow: hidden;
 }
 
 /* =====================================================
@@ -93,7 +93,7 @@ body{
 .left-panel{
   flex: 3;
   display: flex;
-  overflow: visible;
+  overflow: hidden;
 }
 
 /* sidebar tab */
@@ -169,7 +169,7 @@ body{
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
 }
 
 /* =====================================================
@@ -289,7 +289,7 @@ body{
   font-weight: 600;
   line-height: 1.3;
   max-height: 34px;
-  overflow: visible;
+  overflow: hidden;
 
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -724,7 +724,7 @@ body{
   padding: 16px;
   display: none;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
 }
 .txn-toolbar{
   display:flex;
