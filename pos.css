@@ -1453,10 +1453,11 @@ body{
   line-height:1.35;
   box-shadow:0 6px 18px rgba(0,0,0,.25);
 
-  /* default muncul ke kiri atas */
+  /* ✅ DEFAULT: muncul ke kiri dan ke bawah */
   right:110%;
-  bottom:0;
+  top:110%;
 }
+
 
 /* muncul saat hover */
 .price-tooltip-wrap:hover .price-tooltip-box{
