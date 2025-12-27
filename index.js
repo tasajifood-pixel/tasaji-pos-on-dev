@@ -3442,6 +3442,61 @@ function bindBestPeriodButtons(){
 ===================================================== */
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // ✅ RE-BIND DOM REFS (WAJIB agar tidak null setelah refresh)
+  window.panelReport = document.getElementById("panel-report");
+
+  window.productGrid = document.getElementById("productGrid");
+  window.pageInfo = document.getElementById("pageInfo");
+  window.prevPage = document.getElementById("prevPage");
+  window.nextPage = document.getElementById("nextPage");
+
+  window.searchInput = document.getElementById("searchInput");
+  window.btnCari = document.getElementById("btnCari");
+
+  window.cartItems = document.getElementById("cartItems");
+  window.itemCount = document.getElementById("itemCount");
+  window.cartSubtotal = document.getElementById("cartSubtotal");
+  window.cartTotal = document.getElementById("cartTotal");
+  window.cartPanel = document.querySelector(".cart-panel");
+
+  window.panelProduct = document.getElementById("panel-product");
+  window.panelPayment = document.getElementById("panel-payment");
+  window.panelTransactions = document.getElementById("panel-transactions");
+  window.panelSettings = document.getElementById("panel-settings");
+
+  window.quickCash = document.getElementById("quickCash");
+
+  window.payItemCount = document.getElementById("payItemCount");
+  window.payTotal = document.getElementById("payTotal");
+  window.cashInput = document.getElementById("cashInput");
+  window.changeOutput = document.getElementById("changeOutput");
+  window.btnNext = document.getElementById("btnNext");
+
+  window.payLinesList = document.getElementById("payLinesList");
+  window.payRemaining = document.getElementById("payRemaining");
+  window.btnFinishPayment = document.getElementById("btnFinishPayment");
+
+  window.txnSearchInput = document.getElementById("txnSearchInput");
+  window.txnList = document.getElementById("txnList");
+  window.txnDetailTitle = document.getElementById("txnDetailTitle");
+  window.txnDetailSub = document.getElementById("txnDetailSub");
+  window.txnDetailBody = document.getElementById("txnDetailBody");
+  window.txnDetailActions = document.getElementById("txnDetailActions");
+  window.txnDetailBadge = document.getElementById("txnDetailBadge");
+
+  window.customerInput = document.getElementById("customerInput");
+  window.customerDropdown = document.getElementById("customerDropdown");
+
+  window.setHideEmpty = document.getElementById("setHideEmpty");
+  window.setHideKtn = document.getElementById("setHideKtn");
+  window.setReceiptPaper = document.getElementById("setReceiptPaper");
+  window.setStoreName = document.getElementById("setStoreName");
+  window.setStoreSub = document.getElementById("setStoreSub");
+  window.setShiftX = document.getElementById("setShiftX");
+  window.setRequireStock = document.getElementById("setRequireStock");
+  window.setNote1 = document.getElementById("setNote1");
+  window.setNote2 = document.getElementById("setNote2");
+  window.setAutoSyncHours = document.getElementById("setAutoSyncHours");
 
 
   // 1️⃣ load kasir dulu
