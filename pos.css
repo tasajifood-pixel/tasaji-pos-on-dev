@@ -1425,7 +1425,7 @@ body{
   color:#92400e;
 }
 /* =========================
-   TOOLTIP BUKU HARGA (REVISI TOTAL)
+   TOOLTIP BUKU HARGA (JUBELIO STYLE)
 ========================= */
 .price-tooltip-wrap{
   position: relative;
@@ -1433,84 +1433,50 @@ body{
   align-items: center;
 }
 
-/* tooltip box */
 .price-tooltip-box{
   display: none;
-  position: absolute;
+
+  position: fixed;          /* penting: biar tidak kepotong container */
   z-index: 99999;
 
-  /* posisi default: di atas tombol / harga */
-  bottom: calc(100% + 10px);
-  left: 50%;
-  transform: translateX(-50%);
-
-  /* ukuran aman */
-  width: max-content;
-  min-width: 220px;
-  max-width: min(320px, 90vw);
+  min-width: 240px;
+  max-width: 360px;
 
   background: #111;
   color: #fff;
-  padding: 10px 12px;
-  border-radius: 10px;
 
-  font-size: 12px;
-  line-height: 1.4;
+  padding: 12px 14px;
+  border-radius: 12px;
 
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-  white-space: pre-line;
-  pointer-events: none; /* biar hover tetap stabil */
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 600;
+
+  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+
+  white-space: pre-wrap;    /* bisa wrap */
+  word-break: break-word;   /* kalau ada kata panjang */
+  overflow-wrap: anywhere;
+
+  max-height: 280px;        /* kalau kepanjangan → scroll */
+  overflow: auto;
+
+  /* biar scrolling halus */
+  scrollbar-width: thin;
 }
 
 /* panah kecil */
 .price-tooltip-box::after{
   content:"";
   position:absolute;
-  left:50%;
-  top:100%;
-  transform: translateX(-50%);
-  border-width: 7px;
+  left: 18px;
+  top: 100%;
+  border-width: 8px;
   border-style: solid;
   border-color: #111 transparent transparent transparent;
 }
 
-/* tampil saat hover */
+/* show */
 .price-tooltip-wrap:hover .price-tooltip-box{
-  display:block;
+  display: block;
 }
-
-/* ====== MODE: dekat kanan layar (muncul ke kiri) ======
-   Kalau di HTML wrapper ditambah class: price-tooltip-wrap to-left
-*/
-.price-tooltip-wrap.to-left .price-tooltip-box{
-  left: auto;
-  right: 0;
-  transform: translateX(-10px); /* geser sedikit ke kiri */
-}
-.price-tooltip-wrap.to-left .price-tooltip-box::after{
-  left: auto;
-  right: 18px;
-  transform: none;
-}
-
-/* ====== MODE: dekat kiri layar (muncul ke kanan) ======
-   Kalau di HTML wrapper ditambah class: price-tooltip-wrap to-right
-*/
-.price-tooltip-wrap.to-right .price-tooltip-box{
-  left: 0;
-  transform: translateX(10px);
-}
-.price-tooltip-wrap.to-right .price-tooltip-box::after{
-  left: 18px;
-  transform: none;
-}
-
-/* ====== FIX PENTING: jangan pakai overflow visible global ======
-   Yang dibuat visible cukup area cart/item saja supaya tooltip gak kepotong.
-*/
-.cart-panel,
-.cart-items,
-.cart-item{
-  overflow: visible;
-}
-
