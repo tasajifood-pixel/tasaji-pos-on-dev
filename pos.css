@@ -1425,41 +1425,125 @@ body{
   color:#92400e;
 }
 
-/* ============================
-   TOOLTIP BUKU HARGA (STABIL)
-============================ */
-.price-tooltip-wrap{
+/* =========================
+   TIER PRICE TOOLTIP (BAGUS)
+========================= */
+
+.tier-price{
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 14px;
+  color: #111;
+  background: #f7f7f7;
+  border: 1px solid #ededed;
+  cursor: default;
 }
 
-.price-tooltip-trigger{
-  display:inline-block;
+.tier-price .tier-info{
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+  color: #111;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  cursor: pointer;
+  user-select: none;
 }
 
-/* default hidden */
-.price-tooltip-box{
-  display:none;
-  position:absolute;
-  z-index:99999;
-  white-space:pre-line;
-  min-width:200px;
-  max-width:260px;
-  padding:10px;
-  border-radius:10px;
-  background:#111;
-  color:#fff;
-  font-size:12px;
-  line-height:1.35;
-  box-shadow:0 6px 18px rgba(0,0,0,.25);
+/* Tooltip bubble */
+.tier-tooltip{
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 10px);
+  min-width: 220px;
+  max-width: 260px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #111;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+  z-index: 50;
 
-  /* ✅ DEFAULT: muncul ke kiri dan ke bawah */
-  right:110%;
-  top:110%;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px);
+  transition: all .14s ease;
 }
 
+/* Panah tooltip */
+.tier-tooltip::after{
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 100%;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 8px solid #111;
+}
 
-/* muncul saat hover */
-.price-tooltip-wrap:hover .price-tooltip-box{
-  display:block;
+/* Show on hover (desktop) */
+.tier-price:hover .tier-tooltip{
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* Show on tap (mobile) via class */
+.tier-price.open .tier-tooltip{
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* Tooltip header */
+.tier-tooltip .tier-title{
+  font-weight: 900;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+/* List */
+.tier-tooltip ul{
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.tier-tooltip li{
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.tier-tooltip .tier-qty{
+  color: rgba(255,255,255,0.75);
+  font-weight: 700;
+}
+
+.tier-tooltip .tier-val{
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+/* Highlight tier aktif (opsional JS nanti isi class active) */
+.tier-tooltip li.active{
+  background: rgba(255,255,255,0.10);
+  border-radius: 10px;
+  padding: 6px 8px;
 }
