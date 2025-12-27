@@ -1428,55 +1428,24 @@ body{
    TOOLTIP BUKU HARGA (FINAL)
 ========================= */
 .price-tooltip-wrap{
-  position:relative;
-  display:inline-block;
+  position: relative;
+  display: inline-block;
 }
 
-/* tooltip default disembunyikan */
 .price-tooltip-box{
   display:none;
   position:absolute;
-  z-index:999999;
-
-  min-width:260px;
-  max-width:340px;
+  z-index:9999;
+  white-space:pre-line;
+  min-width:200px;
+  padding:10px;
+  border-radius:10px;
   background:#111;
   color:#fff;
-  padding:12px 14px;
-  border-radius:12px;
-
-  font-size:13px;
-  line-height:1.5;
-  box-shadow:0 14px 40px rgba(0,0,0,.28);
-  white-space:pre-line;
+  font-size:12px;
+  box-shadow:0 6px 18px rgba(0,0,0,.25);
 }
 
-/* class show dari JS */
 .price-tooltip-box.show{
   display:block;
-}
-
-/* panah default: arah ke kanan */
-.price-tooltip-box::after{
-  content:"";
-  position:absolute;
-  top:18px;
-  left:100%;
-  border-width:7px;
-  border-style:solid;
-  border-color:transparent transparent transparent #111;
-}
-
-/* kalau tooltip ditaruh kanan (pakai left:110%), panah harus ke kiri */
-.price-tooltip-box[style*="left: 110%"]::after{
-  left:auto;
-  right:100%;
-  border-color:transparent #111 transparent transparent;
-}
-
-/* agar gak ketutup container manapun */
-.cart-panel,
-.cart-items,
-.cart-item{
-  overflow:visible !important;
 }
