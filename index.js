@@ -1579,8 +1579,6 @@ async function goToPayment() {
   changeOutput.textContent = formatRupiah(0);
 
   if (quickCash) quickCash.style.display = "none";
-
-    PAYMENT_LINES = [];
   resetPaymentLines();
 
   cashInput.value = "";
@@ -1783,9 +1781,6 @@ document.querySelectorAll(".pay-method-btn").forEach(btn => {
   // 5️⃣ Refresh status pembayaran
   recalcPaymentStatus();
 });
-
-});
-
 async function processPayment() {
   // ==============================
   // OFFLINE MODE: SIMPAN LOKAL SAJA
@@ -1892,13 +1887,17 @@ resetAll();
 }
 
 function backToEdit() {
-	  resetPaymentLines();
+  resetPaymentLines();
+  selectedPaymentMethod = null;
+
+  document.querySelectorAll(".pay-method-btn")
+    .forEach(b => b.classList.remove("active"));
+
   setActiveTabBtn("sales");
   panelPayment.style.display = "none";
   panelProduct.style.display = "flex";
   btnNext.style.display = "block";
   panelPayment.dataset.active = "0";
-
 }
 
 async function saveJubelioPayloadToOrder(salesorderNo, payloadObj){
