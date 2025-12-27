@@ -1,24 +1,18 @@
+// ===== AUTH / LOGIN =====
+  if (!localStorage.getItem("pos_user")) {
+    window.location.replace("login.html");
+  }
+
+// ===== AUTH / LOGIN =====
 function logout() {
   if (confirm("Yakin ingin logout?")) {
-
-    // AUTH
     localStorage.removeItem("pos_user");
-
-    // SSOT KASIR (WAJIB BERSIH)
-    localStorage.removeItem("pos_active_cashier_id");
-    localStorage.removeItem("pos_active_cashier_name");
-
-    // KODE / UI KASIR (OPSIONAL)
-    localStorage.removeItem("pos_cashier_code");
-
-    // LEGACY (AMAN DIHAPUS BERTAHAP)
     localStorage.removeItem("pos_cashier_id");
     localStorage.removeItem("pos_cashier_name");
 
     window.location.replace("login.html");
   }
 }
-
 
 /* =====================================================
    SUPABASE
@@ -132,8 +126,6 @@ let CUSTOMER_LIST = [];
 let ACTIVE_CUSTOMER = null;
 let PRICE_MAP = {};
 let PACKING_MAP = {};
-let STOCK_MAP = {}; // item_id -> stok_tersedia (dari decision.v_inventory_ui)
-
 let CURRENT_SALESORDER_NO = null;
 let CURRENT_LOCAL_ORDER_NO = null;     // ✅ nomor offline (local)
 let CURRENT_ORDER_MODE = "online";     // "online" | "offline"
@@ -151,13 +143,11 @@ let CASHIER_ID = null;
 let CASHIER_NAME = null;
 let AUTO_SYNC_HOURS = 3; // default
 
-function loadCashier(){
-  // SSOT kasir (UNTUK DATA & FILTER)
-  CASHIER_ID = localStorage.getItem("pos_active_cashier_id") || null;
-  CASHIER_NAME = localStorage.getItem("pos_active_cashier_name") || null;
 
-  // OPTIONAL: kode kasir hanya untuk tampilan UI
-  CASHIER_CODE = localStorage.getItem("pos_cashier_code") || null;
+
+function loadCashier(){
+  CASHIER_ID = localStorage.getItem("pos_cashier_id") || null;
+  CASHIER_NAME = localStorage.getItem("pos_cashier_name") || null;
 }
 
 
@@ -184,7 +174,6 @@ async function manualSyncProducts(){
 
   updateSyncStatus("⏳ Sync produk...");
   await syncAllProductsToCache();
-	await loadStockMap();
   updateSyncStatus("✅ Sync selesai");
 }
 function updateSyncStatus(text){
@@ -225,18 +214,6 @@ function savePackingMapCache(map){
 }
 function loadPackingMapCache(){
   return loadJsonCache("pos_packing_map_v1", {}) || {};
-}
-function saveStockMapCache(map){
-  saveJsonCache("pos_stock_map_v1", map);
-  localStorage.setItem("pos_stock_map_ts", String(Date.now()));
-}
-function loadStockMapCache(){
-  return loadJsonCache("pos_stock_map_v1", {}) || {};
-}
-function getStockMapCacheAgeMs(){
-  const ts = Number(localStorage.getItem("pos_stock_map_ts") || 0);
-  if (!ts) return Infinity;
-  return Date.now() - ts;
 }
 
 function saveCustomerCache(list){
@@ -301,7 +278,7 @@ async function syncAllProductsToCache(){
     while(true){
       const { data, error } = await sb
         .from("master_items")
-        .select("item_id,item_code,item_name,thumbnail,sell_price,barcode")
+        .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty")
         .order("item_name", { ascending:true })
         .range(from, from + size - 1);
 
@@ -316,9 +293,6 @@ async function syncAllProductsToCache(){
     saveProductsCache(all);
     localStorage.setItem("pos_products_cache_ts", String(Date.now()));
     console.log("✅ Cached products:", all.length);
-	  // ✅ sync stok map juga (agar OFFLINE stok tetap benar)
-await loadStockMap();
-
   }catch(err){
     console.error("❌ syncAllProductsToCache error:", err);
   }
@@ -364,7 +338,7 @@ function getLocalDateYMD(){
 
 function normalizeCashierIdForLocal(){
   // KSR-01 -> KSR01 (biar rapih)
-  const raw = CASHIER_ID || "UNKNOWN";
+  const raw = (CASHIER_ID || localStorage.getItem("pos_cashier_id") || "KSR00");
   return String(raw).replace(/[^A-Za-z0-9]/g, "");
 }
 
@@ -529,9 +503,8 @@ function parkCurrentOrder(){
     label,
     created_at: Date.now(),
 
- cashier_id: CASHIER_ID,
-cashier_name: CASHIER_NAME,
-
+    cashier_id: CASHIER_ID || localStorage.getItem("pos_cashier_id") || null,
+    cashier_name: CASHIER_NAME || localStorage.getItem("pos_cashier_name") || null,
 
     // simpan state
     customer: ACTIVE_CUSTOMER || null,
@@ -639,16 +612,13 @@ async function findProductByBarcode(barcode) {
 
   const { data, error } = await sb
     .from("master_items")
-    .select("item_id,item_code,item_name,thumbnail,sell_price,barcode")
+    .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty")
     .eq("barcode", barcode)
     .limit(1)
     .single();
 
   if (error || !data) return null;
-  const stok = Number(STOCK_MAP?.[data.item_id] ?? 0);
-data.stok_tersedia = stok; // tempel ke object biar konsisten dipakai bawah
-if (stok <= 0 && filters.requireStock) return null;
-
+  if (data.available_qty <= 0 && filters.requireStock) return null;
   return data;
 }
 
@@ -892,41 +862,6 @@ if (key === "report") {
 /* =====================================================
    LOAD PRODUCTS
 ===================================================== */
-async function loadStockMap(){
-  // OFFLINE → pakai cache
-  if(!isOnline()){
-    STOCK_MAP = loadStockMapCache();
-    return;
-  }
-
-  // ONLINE tapi supabase gak bisa dijangkau → fallback cache
-  const supabaseOK = await canReachSupabase();
-  if(!supabaseOK){
-    STOCK_MAP = loadStockMapCache();
-    return;
-  }
-
-  try{
-    const { data, error } = await sb
-      .schema("decision")
-      .from("v_inventory_ui")
-      .select("item_id, stok_tersedia");
-
-    if(error) throw error;
-
-    const map = {};
-    (data || []).forEach(r => {
-      map[r.item_id] = Number(r.stok_tersedia || 0);
-    });
-
-    STOCK_MAP = map;
-    saveStockMapCache(STOCK_MAP);
-  }catch(err){
-    console.error("❌ loadStockMap error:", err);
-    STOCK_MAP = loadStockMapCache();
-  }
-}
-
 async function loadProducts() {
   // default sort
   let sortMode = PRODUCT_SORT_MODE || localStorage.getItem("product_sort_mode") || "az";
@@ -949,16 +884,6 @@ async function loadProducts() {
 
     // filter manual (search, stok, ktn)
     let list = cached.slice();
-// pastikan STOCK_MAP terisi (offline pakai cache)
-if (!STOCK_MAP || Object.keys(STOCK_MAP).length === 0){
-  STOCK_MAP = loadStockMapCache();
-}
-
-// inject stok dari SSOT UI ke data produk
-list = list.map(p => ({
-  ...p,
-  stok_tersedia: Number(STOCK_MAP?.[p.item_id] ?? 0)
-}));
 
     if (currentQuery) {
       const q = currentQuery.toLowerCase();
@@ -969,7 +894,7 @@ list = list.map(p => ({
       );
     }
 
-    if (filters.hideEmpty) list = list.filter(p => Number(p.stok_tersedia || 0) > 0);
+    if (filters.hideEmpty) list = list.filter(p => p.available_qty > 0);
     if (filters.hideKtn) list = list.filter(p => !/ktn/i.test(p.item_name || ""));
 // ==========================
 // APPLY SORT (OFFLINE)
@@ -1003,13 +928,12 @@ return;
   // ==========================
   let q = sb
   .from("master_items")
-  .select("item_id,item_code,item_name,thumbnail,sell_price,barcode",{ count:"exact" });
-
+  .select("item_id,item_code,item_name,thumbnail,sell_price,barcode,available_qty",{ count:"exact" });
 
   if (currentQuery) {
     q = q.or(`item_name.ilike.%${currentQuery}%,item_code.ilike.%${currentQuery}%,barcode.ilike.%${currentQuery}%`);
   }
-
+  if (filters.hideEmpty) q = q.gt("available_qty",0);
   if (filters.hideKtn) q = q.not("item_name","ilike","%ktn%");
   // ==========================
   // APPLY SORT (ONLINE)
@@ -1042,39 +966,16 @@ return;
     if (e1) { console.error("loadProducts error", e1); return; }
 
     const list = (allData || []).slice();
-	  await loadStockMap(); // pastikan STOCK_MAP fresh
-list.forEach(p => { p.stok_tersedia = Number(STOCK_MAP?.[p.item_id] ?? 0); });
 
-if (filters.hideEmpty) {
-  // hideEmpty pakai stok_tersedia SSOT UI
-  for (let i = list.length - 1; i >= 0; i--){
-    if (Number(list[i].stok_tersedia || 0) <= 0) list.splice(i,1);
-  }
-}
-
-
-    list.sort((a, b) => {
+    list.sort((a,b)=>{
   const ra = rankMap[a.item_code];
   const rb = rankMap[b.item_code];
 
-  // 1️⃣ Dua-duanya ADA di best seller → urutkan by rank
-  if (ra != null && rb != null) {
-    return ra - rb;
-  }
+  if (ra == null && rb == null) return 0;
+  if (ra == null) return 1;   // yang bukan best seller selalu di bawah
+  if (rb == null) return -1;
 
-  // 2️⃣ Hanya A yang ADA → A di atas
-  if (ra != null && rb == null) {
-    return -1;
-  }
-
-  // 3️⃣ Hanya B yang ADA → B di atas
-  if (ra == null && rb != null) {
-    return 1;
-  }
-
-  // 4️⃣ Dua-duanya TIDAK ADA → urutkan A–Z (item_name)
-  return String(a.item_name || "")
-    .localeCompare(String(b.item_name || ""), "id");
+  return ra - rb;
 });
 
 
@@ -1096,19 +997,6 @@ if (filters.hideEmpty) {
   // ==========================
   const { data, count, error } = await q.range(from,to);
   if (error) { console.error("loadProducts error", error); return; }
-await loadStockMap();
-const list = (data || []).map(p => ({
-  ...p,
-  stok_tersedia: Number(STOCK_MAP?.[p.item_id] ?? 0)
-}));
-
-const finalList = filters.hideEmpty
-  ? list.filter(p => Number(p.stok_tersedia || 0) > 0)
-  : list;
-
-renderProducts(finalList);
-updatePagination(count||0);
-return;
 
   renderProducts(data||[]);
   updatePagination(count||0);
@@ -1306,35 +1194,31 @@ if(!isOnline() || !supabaseOK){
     CUSTOMER_LIST = loadCustomerCache();
   }
 }
-// =====================
-// LOAD BEST SELLER MAP (FINAL)
-// SSOT: decision.mv_best_seller_ui
-// =====================
+// ==========================
+// BEST SELLER MAP (90 HARI)
+// ==========================
 async function loadBestSellerMap() {
-  // OFFLINE → tidak ada best seller
   if (!isOnline()) return {};
 
-  try {
-    const { data, error } = await sb
-      .schema("decision")
-      .from("mv_best_seller_ui")   // ✅ SSOT UI
-      .select("pcs_item_code, rank_no")
-      .eq("period_key", BEST_SELLER_PERIOD || "90d");
+  const { data, error } = await sb
+  .from("product_best_sellers")       // ✅ BENAR
+  .select("item_code, rank_no")
+  .eq("period_key", BEST_SELLER_PERIOD || "90d");
 
-    if (error) throw error;
 
-    const map = {};
-    (data || []).forEach(r => {
-      map[r.pcs_item_code] = Number(r.rank_no);
-    });
-
-    return map;
-
-  } catch (err) {
-    console.error("❌ loadBestSellerMap error:", err);
+  if (error) {
+    console.error("loadBestSellerMap error", error);
     return {};
   }
+
+  const map = {};
+  (data || []).forEach(r => {
+    map[r.item_code] = r.rank_no;
+  });
+
+  return map;
 }
+
 
 
 /* =====================================================
@@ -1349,9 +1233,7 @@ function renderProducts(list){
 
   list.forEach(p=>{
     const card=document.createElement("div");
-   const qty = Number(p.stok_tersedia ?? p.available_qty ?? 0); // fallback terakhir (kalau ada)
-const outOfStock = qty <= 0;
-
+   const outOfStock = p.available_qty <= 0;
 const requireStock = filters.requireStock;
 
 // class:
@@ -1378,7 +1260,7 @@ if (!outOfStock || !requireStock) {
   ${formatRupiah(getFinalPrice(p.item_code, 1))}
 </div>
 
-        <div class="product-stock">Stok ${qty}</div>
+        <div class="product-stock">Stok ${p.available_qty}</div>
       </div>`;
         productGrid.appendChild(card);
   });
@@ -1934,7 +1816,7 @@ async function processPayment() {
     await hydrateCartItemIds();
 
     // ✅ 2. SIMPAN HEADER
-    const order = await saveSalesOrder();
+    const order = await saveSalesOrderHeader();
 
     // ✅ 3. SIMPAN ITEMS
     await saveSalesOrderItems(order.salesorder_no);
@@ -2135,17 +2017,13 @@ function buildJubelioPayload(order, items) {
 }
 
 /* =====================================================
-   SAVE SALES ORDER (HEADER / ITEMS / PAYMENTS)
+   SAVE SALES ORDER (HEADER/ITEMS/PAYMENTS)
 ===================================================== */
-
 // ✅ pastikan setiap item di cart punya itemId (anti NaN -> null)
 async function hydrateCartItemIds(){
   for (const item of cart) {
-    if (
-      item.itemId !== undefined &&
-      item.itemId !== null &&
-      !Number.isNaN(Number(item.itemId))
-    ) continue;
+    // kalau sudah valid, skip
+    if (item.itemId !== undefined && item.itemId !== null && !Number.isNaN(Number(item.itemId))) continue;
 
     const code = item.itemCode || item.code;
     if (!code) continue;
@@ -2168,62 +2046,35 @@ async function hydrateCartItemIds(){
   saveOrderState();
 }
 
-
-/**
- * Simpan sales order ke server
- */
-async function saveSalesOrder(){
-  // ⛔ HARD GUARD – TIDAK BOLEH LANJUT TANPA KASIR
-  if (!CASHIER_ID || !CASHIER_NAME) {
-    alert("Identitas kasir tidak valid. Silakan login ulang.");
-    throw new Error("CASHIER_NOT_SET");
+async function saveSalesOrderHeader() {
+  // ✅ kalau belum ada nomor, buat sekarang (anti error, anti reuse sisa localStorage)
+  if (!CURRENT_SALESORDER_NO) {
+    CURRENT_SALESORDER_NO = await generateSalesOrderNo();
+    updateOrderNumberUI();
+    saveOrderState();
   }
 
-  // pastikan cart item valid
-  await hydrateCartItemIds();
-
   const payload = {
-    // =====================
-    // IDENTITAS TRANSAKSI
-    // =====================
+
     salesorder_no: CURRENT_SALESORDER_NO,
-
-    cashier_id: CASHIER_ID,
-    cashier_name: CASHIER_NAME,
-
-    // =====================
-    // CUSTOMER
-    // =====================
+	cashier_id: CASHIER_ID || "UNKNOWN",
+	cashier_name: CASHIER_NAME || "UNKNOWN",
     contact_id: ACTIVE_CUSTOMER?.contact_id ?? -1,
     customer_name: ACTIVE_CUSTOMER?.contact_name ?? "Pelanggan Umum",
     shipping_phone: ACTIVE_CUSTOMER?.phone ?? null,
-
-    // =====================
-    // TOTAL & WAKTU
-    // =====================
     transaction_date: new Date().toISOString(),
     sub_total: calcTotal(),
     grand_total: calcTotal(),
-
-    // =====================
-    // PEMBAYARAN
-    // =====================
     payment_method: PAYMENT_LINES.map(p => p.label).join(", "),
-    is_paid: true,
-
-    // =====================
-    // METADATA
-    // =====================
     location_id: -1,
     store_id: -100,
+    is_paid: true,
 
-    // =====================
-    // STATUS SYNC JUBELIO
-    // =====================
-    jubelio_synced: false,
-    jubelio_synced_at: null,
-    jubelio_error: null,
-    jubelio_payload: null
+// ✅ status sync Jubelio (queue)
+jubelio_synced: false,
+jubelio_synced_at: null,
+jubelio_error: null,
+jubelio_payload: null
   };
 
   const { data, error } = await sb
@@ -2522,8 +2373,8 @@ async function syncOfflineOrdersToServer(){
       // 2️⃣ simpan HEADER
       const headerPayload = {
         salesorder_no: salesorderNo,
-        cashier_id: off.cashier_id,
-		cashier_name: off.cashier_name,
+        cashier_id: off.cashier_id || "OFFLINE",
+        cashier_name: off.cashier_name || "OFFLINE",
         contact_id: off.customer?.contact_id ?? -1,
         customer_name: off.customer?.contact_name || "Pelanggan Umum",
         shipping_phone: off.customer?.phone || null,
@@ -2651,7 +2502,8 @@ const cashierFilter =
   || localStorage.getItem("txn_cashier_filter")
   || "ACTIVE";
 
-const activeCashierId = CASHIER_ID || null;
+const activeCashierId =
+  CASHIER_ID || localStorage.getItem("pos_cashier_id") || null;
   if (resetPage) TXN_PAGE = 1;
   // ✅ kalau terlihat online tapi server nggak bisa dijangkau → anggap OFFLINE
   const supabaseOK = await canReachSupabase();
@@ -2659,7 +2511,7 @@ const activeCashierId = CASHIER_ID || null;
     const kw = ((txnSearchInput?.value || "").trim()).toLowerCase();
 
     let list = loadOfflineTransactions()
-      .filter(x => !activeCashierId || x.cashier_id === activeCashierId);
+      .filter(x => !CASHIER_ID || x.cashier_id === CASHIER_ID);
 
     if (kw) {
       list = list.filter(x => {
@@ -3231,8 +3083,6 @@ applyBestPeriodUI();
   await loadPriceMap();
   await loadPackingMap();
   await loadCustomers();
-	await loadStockMap();
-
 if (isOnline()) {
   await syncAllProductsToCacheIfNeeded();
 }
@@ -3272,110 +3122,118 @@ if (isOnline()) {
 // ==============================
 // WELCOME SCREEN LOGIC
 // ==============================
+function selectCashier(id, name){
+  localStorage.setItem("pos_cashier_id", id);
+  localStorage.setItem("pos_cashier_name", name);
 
-/**
- * Pilih kasir (UI ONLY)
- * SSOT kasir tetap dari LOGIN
- */
-function selectCashier(code){
-  // simpan kode kasir hanya untuk UI
-  localStorage.setItem("pos_cashier_code", code);
-
-  // pastikan variabel global terisi dari SSOT
-  loadCashier();
+  CASHIER_ID = id;
+  CASHIER_NAME = name;
 
   updateCashierInfo();
   updateTxnHead();
+
+  // ✅ PENTING: bersihkan transaksi kasir sebelumnya
   resetTransactionUI();
 
+  // ✅ kalau tab Trans sedang aktif, load transaksi kasir baru
+  if (document.getElementById("tabTxn")?.classList.contains("active")) {
+    loadTransactions(true);
+  }
+
   document.getElementById("welcomeScreen").style.display = "none";
+    updateSwitchCashierButton(); // ✅ tambah ini
+	  // ⬇️ PAKSA TAMPILKAN POS
+  panelProduct.style.display = "flex";
+  panelPayment.style.display = "none";
+  panelTransactions.style.display = "none";
+  panelSettings.style.display = "none";
+
+  if (cartPanel) cartPanel.style.display = "flex";
+
+  setActiveTabBtn("sales");
+  // ✅ paksa render produk setelah pilih kasir
+  page = 1;
+  loadProducts();
+
+
 }
 
-/**
- * Cek apakah kasir sudah ada
- * Dipanggil saat app load
- */
-function checkCashier(){
-  loadCashier(); // ✅ SSOT
 
-  if (!CASHIER_ID || !CASHIER_NAME) {
+
+function checkCashier(){
+  const id = localStorage.getItem("pos_cashier_id");
+
+  if (!id) {
     document.getElementById("welcomeScreen").style.display = "flex";
     return;
   }
 
+  // kalau sudah ada kasir → pastikan POS tampil
   document.getElementById("welcomeScreen").style.display = "none";
+
+  panelProduct.style.display = "flex";
+  if (cartPanel) cartPanel.style.display = "flex";
+
+  setActiveTabBtn("sales");
+    // ✅ paksa render produk (biar pas refresh/offline nggak kosong)
+  page = 1;
+  loadProducts();
+
 }
 
-/**
- * Reset / ganti kasir
- */
 function resetCashier(){
-  // ❌ tidak boleh ganti kasir saat transaksi aktif
+// ✅ OPSI A: kunci ganti kasir saat transaksi aktif
   if (isOrderActive()){
-    alert(
-      "Tidak bisa ganti kasir saat ada transaksi aktif.\n" +
-      "Selesaikan transaksi atau klik Reset dulu."
-    );
+    alert("Tidak bisa ganti kasir saat ada transaksi aktif.\nSelesaikan transaksi atau klik Reset dulu.");
     return;
   }
-
   if (!confirm("Ganti kasir? Transaksi berjalan akan tetap aman.")) return;
 
-  // hapus identitas kasir
-  localStorage.removeItem("pos_active_cashier_id");
-  localStorage.removeItem("pos_active_cashier_name");
-  localStorage.removeItem("pos_cashier_code");
+  localStorage.removeItem("pos_cashier_id");
+  localStorage.removeItem("pos_cashier_name");
 
   CASHIER_ID = null;
   CASHIER_NAME = null;
 
   updateCashierInfo();
   updateTxnHead();
+
+  // ✅ ini WAJIB
   resetTransactionUI();
 
   document.getElementById("welcomeScreen").style.display = "flex";
 }
 
-/**
- * Update judul daftar transaksi
- */
 function updateTxnHead(){
+  const el = document.getElementById("txnListHead");
+  if (!el) return;
+
+  const name = CASHIER_NAME || localStorage.getItem("pos_cashier_name") || "";
+  const id   = CASHIER_ID || localStorage.getItem("pos_cashier_id") || "";
+
   const titleEl = document.getElementById("txnHeadTitle");
-  if (!titleEl) return;
 
-  const name = CASHIER_NAME;
-  const code = localStorage.getItem("pos_cashier_code");
+  if (titleEl) {
+    titleEl.textContent = (name && id)
+      ? `Daftar Transaksi — ${name} (${id})`
+      : "Daftar Transaksi";
+  }
+} // ✅ INI YANG KURANG
 
-  titleEl.textContent = name
-    ? (code
-        ? `Daftar Transaksi — ${name} (${code})`
-        : `Daftar Transaksi — ${name}`)
-    : "Daftar Transaksi";
-}
 
-/**
- * Update info kasir di header POS
- */
 function updateCashierInfo(){
   const el = document.getElementById("cashierInfo");
   if (!el) return;
 
-  const name = CASHIER_NAME;
-  const code = localStorage.getItem("pos_cashier_code");
+  const name = localStorage.getItem("pos_cashier_name");
+  const id   = localStorage.getItem("pos_cashier_id");
 
-  if (!name) {
+  if (name && id) {
+    el.textContent = `Kasir: ${name} (${id})`;
+  } else {
     el.textContent = "";
-    return;
   }
-
-  el.textContent = code
-    ? `Kasir: ${name} (${code})`
-    : `Kasir: ${name}`;
 }
-
-// ==============================
-// NETWORK EVENT
-// ==============================
 window.addEventListener("online", () => {
   console.log("🌐 Online kembali → sync offline orders");
   syncOfflineOrdersToServer();
@@ -3655,11 +3513,10 @@ async function loadReport(forceRefresh){
       if (cashierBox) cashierBox.innerHTML = "";
     }
 
-   let cashierFilterId = null;
-if(filterMode === "ACTIVE"){
-  cashierFilterId = CASHIER_ID || null;
-}
-
+    let cashierFilterId = null;
+    if(filterMode === "ACTIVE"){
+      cashierFilterId = CASHIER_ID || localStorage.getItem("pos_cashier_id") || null;
+    }
 
    // if(info) info.textContent = "⏳ Memuat laporan...";
 
