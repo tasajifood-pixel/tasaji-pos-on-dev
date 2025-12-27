@@ -1534,28 +1534,11 @@ function calcItemCount(){
   return cart.reduce((s,i)=>s+i.qty,0);
 }
 
-function renderCart(){
-  cartItems.innerHTML="";
-  const total = calcTotal();
-  const count = calcItemCount();
-
-  if(!cart.length){
-  cartItems.innerHTML = `
-    <div style="
-      padding:12px;
-      color:#999;
-      font-size:13px;
-      text-align:center;
-    ">
-      Belum ada item di transaksi
-    </div>
-  `;
-}
+/* ✅ TARUH DI SINI (LUAR renderCart) */
 function enablePriceEdit(code){
   const item = cart.find(i => (i.code || i.itemCode) === code);
   if(!item) return;
 
-  // cari elemen harga yang diklik
   const priceEl = Array.from(document.querySelectorAll(".cart-item"))
     .find(x => x.querySelector(".cart-item-code")?.textContent?.trim() === code)
     ?.querySelector(".cart-item-price");
@@ -1564,18 +1547,16 @@ function enablePriceEdit(code){
 
   const currentValue = Number(item.price || 0);
 
-  // ganti jadi input
   priceEl.innerHTML = `
     <input type="number"
       style="width:110px;font-size:13px;padding:4px;"
-      value="${formatNumberInput(currentValue)}"
+      value="${currentValue}"
       onkeydown="onPriceInputKey(event,'${code}')"
       onblur="savePriceInput(this,'${code}')"
       autofocus
     />
   `;
 
-  // fokuskan input
   const inp = priceEl.querySelector("input");
   if(inp){
     inp.focus();
@@ -1586,12 +1567,11 @@ function enablePriceEdit(code){
 function onPriceInputKey(e, code){
   if(e.key === "Enter"){
     e.preventDefault();
-    const input = e.target;
-    savePriceInput(input, code);
+    savePriceInput(e.target, code);
   }
   if(e.key === "Escape"){
     e.preventDefault();
-    renderCart(); // batal, balik tampilan normal
+    renderCart();
   }
 }
 
@@ -1600,39 +1580,56 @@ function savePriceInput(inputEl, code){
   setManualPrice(code, v);
 }
 
+/* ✅ BARU function renderCart() */
+function renderCart(){
+  cartItems.innerHTML="";
+  const total = calcTotal();
+  const count = calcItemCount();
+
+  if(!cart.length){
+    cartItems.innerHTML = `
+      <div style="padding:12px;color:#999;font-size:13px;text-align:center;">
+        Belum ada item di transaksi
+      </div>
+    `;
+    itemCount.textContent=count;
+    cartSubtotal.textContent=formatRupiah(total);
+    cartTotal.textContent=formatRupiah(total);
+    updateSwitchCashierButton();
+    return;
+  }
 
   cart.forEach(i=>{
     const el=document.createElement("div");
     el.className="cart-item";
     const isManual = i.price_manual === true;
 
-el.innerHTML=`
-  <div class="cart-item-price" 
-       onclick="enablePriceEdit('${i.code}')"
-       style="cursor:pointer; ${isManual ? "color:#e53935;font-weight:800;" : ""}"
-       title="Klik untuk edit harga manual">
-    ${formatRupiah(i.price)}
-    ${isManual ? `<span style="font-size:11px;margin-left:6px;">(manual)</span>` : ``}
-  </div>
+    el.innerHTML=`
+      <div class="cart-item-price"
+           onclick="enablePriceEdit('${i.code}')"
+           style="cursor:pointer; ${isManual ? "color:#e53935;font-weight:800;" : ""}"
+           title="Klik untuk edit harga manual">
+        ${formatRupiah(i.price)}
+        ${isManual ? `<span style="font-size:11px;margin-left:6px;">(manual)</span>` : ``}
+      </div>
 
-  <div class="cart-item-name">${i.name}</div>
-  <div class="cart-item-code">${i.code}</div>
+      <div class="cart-item-name">${i.name}</div>
+      <div class="cart-item-code">${i.code}</div>
 
-  <div class="cart-item-actions">
-    <button class="qty-btn" onclick="changeQty('${i.code}',-1)">−</button>
-    <div class="qty-value">${i.qty}</div>
-    <button class="qty-btn" onclick="changeQty('${i.code}',1)">+</button>
-    <button class="btn-delete" onclick="changeQty('${i.code}',-999)">🗑</button>
-  </div>
-`;
-
+      <div class="cart-item-actions">
+        <button class="qty-btn" onclick="changeQty('${i.code}',-1)">−</button>
+        <div class="qty-value">${i.qty}</div>
+        <button class="qty-btn" onclick="changeQty('${i.code}',1)">+</button>
+        <button class="btn-delete" onclick="changeQty('${i.code}',-999)">🗑</button>
+      </div>
+    `;
     cartItems.appendChild(el);
   });
 
   itemCount.textContent=count;
   cartSubtotal.textContent=formatRupiah(total);
   cartTotal.textContent=formatRupiah(total);
-  updateSwitchCashierButton(); // ✅ tambah ini
+  updateSwitchCashierButton();
 }
 
 /* =====================================================
