@@ -1433,10 +1433,10 @@ body{
   align-items: center;
 }
 
+/* tooltip box */
 .price-tooltip-box{
   display: none;
-
-  position: fixed;          /* penting: biar tidak kepotong container */
+  position: fixed;     /* penting biar gak kepotong container */
   z-index: 99999;
 
   min-width: 240px;
@@ -1454,29 +1454,25 @@ body{
 
   box-shadow: 0 12px 40px rgba(0,0,0,0.35);
 
-  white-space: pre-wrap;    /* bisa wrap */
-  word-break: break-word;   /* kalau ada kata panjang */
+  white-space: pre-wrap;
+  word-break: break-word;
   overflow-wrap: anywhere;
 
-  max-height: 280px;        /* kalau kepanjangan → scroll */
+  max-height: 260px;
   overflow: auto;
-
-  /* biar scrolling halus */
-  scrollbar-width: thin;
 }
 
-/* panah kecil */
+/* panah kecil: sekarang di ATAS (karena tooltip muncul di bawah) */
 .price-tooltip-box::after{
   content:"";
   position:absolute;
-  left: 18px;
-  top: 100%;
+  left: calc(100% - 26px); /* panah dekat sisi kanan tooltip (mengarah ke harga) */
+  bottom: 100%;
   border-width: 8px;
   border-style: solid;
-  border-color: #111 transparent transparent transparent;
+  border-color: transparent transparent #111 transparent;
 }
 
-/* show */
 .price-tooltip-wrap:hover .price-tooltip-box{
   display: block;
 }
