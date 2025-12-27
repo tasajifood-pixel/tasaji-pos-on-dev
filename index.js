@@ -405,8 +405,6 @@ function buildPriceBookTooltip(itemCode){
   const agen     = getTierPrice(itemCode, "agen");
 
   const lv1 = getTierPrice(itemCode, "lv1_pcs");
-  const lv2 = getTierPrice(itemCode, "lv2_pcs");
-  const lv3 = getTierPrice(itemCode, "lv3_pcs");
 
   // fallback kalau tier gak ada
   const fmt = (n) => (n === null ? "-" : formatRupiah(n));
@@ -425,13 +423,19 @@ function buildPriceBookTooltip(itemCode){
   lines.push(`Reseller (min 2): ${fmt(reseller)}`);
   lines.push(`Agen (min 3): ${fmt(agen)}`);
 
-  // tampilkan lv pcs hanya kalau ada datanya
-  if (lv1 !== null || lv2 !== null || lv3 !== null) {
+ // tampilkan lv pcs hanya kalau ada datanya
+if (lv1 !== null) {
+  lines.push(`---`);
+  // tampilkan HANYA lv1, tanpa teks "Lv1 /pcs:"
+  lines.push(`${fmt(lv1)} ${pcsPerKarton ? `| Karton (${pcsPerKarton} pcs): ${totalKarton(lv1)}` : ""}`);
+} else {
+  // kalau lv1 gak ada, tapi karton ada → minimal kasih info isi karton
+  if (pcsPerKarton) {
     lines.push(`---`);
-    lines.push(`Lv1 /pcs: ${fmt(lv1)} ${pcsPerKarton ? `| 1 Karton(${pcsPerKarton} pcs): ${totalKarton(lv1)}` : ""}`);
-    lines.push(`Lv2 /pcs: ${fmt(lv2)} ${pcsPerKarton ? `| 1 Karton(${pcsPerKarton} pcs): ${totalKarton(lv2)}` : ""}`);
-    lines.push(`Lv3 /pcs: ${fmt(lv3)} ${pcsPerKarton ? `| 1 Karton(${pcsPerKarton} pcs): ${totalKarton(lv3)}` : ""}`);
-  } else {
+    lines.push(`Isi Karton: ${pcsPerKarton} pcs`);
+  }
+}
+ else {
     // kalau lv gak ada, tapi karton ada → minimal kasih info isi karton
     if (pcsPerKarton) {
       lines.push(`---`);
