@@ -1424,3 +1424,54 @@ body{
   border-color:#f59e0b;
   color:#92400e;
 }
+/* =========================
+   TOOLTIP BUKU HARGA
+========================= */
+.price-tooltip-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.price-tooltip-box {
+  display: none;
+  position: absolute;
+  z-index: 9999;
+  left: 0;
+  bottom: 110%;
+  min-width: 220px;
+  max-width: 280px;
+
+  background: #111;
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 10px;
+
+  font-size: 12px;
+  line-height: 1.4;
+
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  white-space: pre-line;
+}
+
+/* panah kecil */
+.price-tooltip-box::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 100%;
+  border-width: 7px;
+  border-style: solid;
+  border-color: #111 transparent transparent transparent;
+}
+
+/* show on hover */
+.price-tooltip-wrap:hover .price-tooltip-box {
+  display: block;
+}
+
+/* biar tooltip tidak ketutup container */
+.cart-panel,
+.product-grid,
+.product-card {
+  overflow: visible !important;
+}
