@@ -1443,10 +1443,13 @@ if (!outOfStock || !requireStock) {
       </div>
       <div class="product-footer">
         <div class="product-price">
-  <span class="price-tooltip-wrap" data-tooltip>
-  ${formatRupiah(getFinalPrice(p.item_code, 1))}
+ <span class="price-tooltip-wrap" data-tooltip>
+  <span class="price-tooltip-trigger">
+    ${formatRupiah(getFinalPrice(p.item_code, 1))}
+  </span>
   <span class="price-tooltip-box">${buildPriceBookTooltip(p.item_code)}</span>
 </span>
+
 
 </div>
 
