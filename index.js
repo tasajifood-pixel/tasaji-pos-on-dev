@@ -27,60 +27,61 @@ const sb = window.supabase.createClient(
 /* =====================================================
    DOM REFS
 ===================================================== */
-  // ✅ DOM REFS (RUN AFTER DOM READY)
-  panelReport = document.getElementById("panel-report");
-  productGrid = document.getElementById("productGrid");
-  pageInfo = document.getElementById("pageInfo");
-  prevPage = document.getElementById("prevPage");
-  nextPage = document.getElementById("nextPage");
+const panelReport = document.getElementById("panel-report");
 
-  searchInput = document.getElementById("searchInput");
-  btnCari = document.getElementById("btnCari");
+const productGrid = document.getElementById("productGrid");
+const pageInfo = document.getElementById("pageInfo");
+const prevPage = document.getElementById("prevPage");
+const nextPage = document.getElementById("nextPage");
 
-  cartItems = document.getElementById("cartItems");
-  itemCount = document.getElementById("itemCount");
-  cartSubtotal = document.getElementById("cartSubtotal");
-  cartTotal = document.getElementById("cartTotal");
-  cartPanel = document.querySelector(".cart-panel");
+const searchInput = document.getElementById("searchInput");
+const btnCari = document.getElementById("btnCari");
 
-  panelProduct = document.getElementById("panel-product");
-  panelPayment = document.getElementById("panel-payment");
-  panelTransactions = document.getElementById("panel-transactions");
-  panelSettings = document.getElementById("panel-settings");
+const cartItems = document.getElementById("cartItems");
+const itemCount = document.getElementById("itemCount");
+const cartSubtotal = document.getElementById("cartSubtotal");
+const cartTotal = document.getElementById("cartTotal");
+const cartPanel = document.querySelector(".cart-panel");
 
-  quickCash = document.getElementById("quickCash");
 
-  payItemCount = document.getElementById("payItemCount");
-  payTotal = document.getElementById("payTotal");
-  cashInput = document.getElementById("cashInput");
-  changeOutput = document.getElementById("changeOutput");
-  btnNext = document.getElementById("btnNext");
+const panelProduct = document.getElementById("panel-product");
+const panelPayment = document.getElementById("panel-payment");
+const panelTransactions = document.getElementById("panel-transactions");
+const panelSettings = document.getElementById("panel-settings");
 
-  payLinesList = document.getElementById("payLinesList");
-  payRemaining = document.getElementById("payRemaining");
-  btnFinishPayment = document.getElementById("btnFinishPayment");
+const quickCash = document.getElementById("quickCash");
 
-  txnSearchInput = document.getElementById("txnSearchInput");
-  txnList = document.getElementById("txnList");
-  txnDetailTitle = document.getElementById("txnDetailTitle");
-  txnDetailSub = document.getElementById("txnDetailSub");
-  txnDetailBody = document.getElementById("txnDetailBody");
-  txnDetailActions = document.getElementById("txnDetailActions");
-  txnDetailBadge = document.getElementById("txnDetailBadge");
+const payItemCount = document.getElementById("payItemCount");
+const payTotal = document.getElementById("payTotal");
+const cashInput = document.getElementById("cashInput");
+const changeOutput = document.getElementById("changeOutput");
+const btnNext = document.getElementById("btnNext");
 
-  customerInput = document.getElementById("customerInput");
-  customerDropdown = document.getElementById("customerDropdown");
+const payLinesList = document.getElementById("payLinesList");
+const payRemaining = document.getElementById("payRemaining");
+const btnFinishPayment = document.getElementById("btnFinishPayment");
 
-  setHideEmpty = document.getElementById("setHideEmpty");
-  setHideKtn = document.getElementById("setHideKtn");
-  setReceiptPaper = document.getElementById("setReceiptPaper");
-  setStoreName = document.getElementById("setStoreName");
-  setStoreSub = document.getElementById("setStoreSub");
-  setShiftX = document.getElementById("setShiftX");
-  setRequireStock = document.getElementById("setRequireStock");
-  setNote1 = document.getElementById("setNote1");
-  setNote2 = document.getElementById("setNote2");
-  setAutoSyncHours = document.getElementById("setAutoSyncHours");
+const txnSearchInput = document.getElementById("txnSearchInput");
+const txnList = document.getElementById("txnList");
+const txnDetailTitle = document.getElementById("txnDetailTitle");
+const txnDetailSub = document.getElementById("txnDetailSub");
+const txnDetailBody = document.getElementById("txnDetailBody");
+const txnDetailActions = document.getElementById("txnDetailActions");
+const txnDetailBadge = document.getElementById("txnDetailBadge");
+const customerInput = document.getElementById("customerInput");
+const customerDropdown = document.getElementById("customerDropdown");
+
+/* settings dom */
+const setHideEmpty = document.getElementById("setHideEmpty");
+const setHideKtn = document.getElementById("setHideKtn");
+const setReceiptPaper = document.getElementById("setReceiptPaper");
+const setStoreName = document.getElementById("setStoreName");
+const setStoreSub = document.getElementById("setStoreSub");
+const setShiftX = document.getElementById("setShiftX");
+const setRequireStock = document.getElementById("setRequireStock");
+const setNote1 = document.getElementById("setNote1");
+const setNote2 = document.getElementById("setNote2");
+const setAutoSyncHours = document.getElementById("setAutoSyncHours");
 
 
 
@@ -382,70 +383,6 @@ function updateSwitchCashierButton(){
 
 // ===== UTILITIES =====
 const formatRupiah = n => "Rp " + Number(n || 0).toLocaleString("id-ID");
-function getTierPrice(itemCode, key){
-  // pastikan PRICE_MAP sudah ready (offline cache pun bisa)
-  const priceMapReady = PRICE_MAP && Object.keys(PRICE_MAP).length > 0;
-  if (!priceMapReady) PRICE_MAP = loadPriceMapCache();
-
-  const v = PRICE_MAP?.[itemCode]?.[key];
-  return (v !== undefined && v !== null) ? Number(v) : null;
-}
-
-function buildPriceBookTooltip(itemCode){
-  if(!itemCode) return "";
-
-  // isi karton
-  const pcsPerKarton = Number(PACKING_MAP?.[itemCode] || 0);
-
-  // ambil tier utama
-  const umum     = getTierPrice(itemCode, "umum");
-  const member   = getTierPrice(itemCode, "member");
-  const reseller = getTierPrice(itemCode, "reseller");
-  const agen     = getTierPrice(itemCode, "agen");
-
-  // ambil lv1 saja (lv2/lv3 tidak dipakai)
-  const lv1 = getTierPrice(itemCode, "lv1_pcs");
-
-  const fmt = (n) => (n === null ? "-" : formatRupiah(n));
-
-  const totalKarton = (hargaPcs) => {
-    if(!pcsPerKarton || pcsPerKarton <= 0) return "-";
-    if(hargaPcs === null) return "-";
-    return formatRupiah(hargaPcs * pcsPerKarton);
-  };
-
-  const lines = [];
-
-  // tier utama
-  lines.push(`Umum: ${fmt(umum)}`);
-  lines.push(`Member: ${fmt(member)}`);
-  lines.push(`Reseller (min 2): ${fmt(reseller)}`);
-  lines.push(`Agen (min 3): ${fmt(agen)}`);
-
-  // hanya tampilkan lv1 (tanpa teks "Lv1 /pcs:")
-  if (lv1 !== null) {
-    lines.push(`---`);
-
-    // Baris utama: harga pcs
-    let extra = "";
-
-    // Kalau ada karton → tampilkan harga karton
-    if (pcsPerKarton) {
-      extra = ` | Karton (${pcsPerKarton} pcs): ${totalKarton(lv1)}`;
-    }
-
-    lines.push(`${fmt(lv1)}${extra}`);
-  } else {
-    // kalau lv1 gak ada, tapi karton ada → info isi karton saja
-    if (pcsPerKarton) {
-      lines.push(`---`);
-      lines.push(`Karton: ${pcsPerKarton} pcs`);
-    }
-  }
-
-  return lines.filter(Boolean).join("\n");
-}
-
 // ==============================
 // MANUAL PRICE EDIT (INLINE)
 // ==============================
@@ -1337,6 +1274,79 @@ function recalcCartPrices() {
   });
 }
 
+// ==============================
+// GET TIER PRICE (PRICE BOOK)
+// ==============================
+function getTierPrice(itemCode, tierKey){
+  if(!itemCode) return null;
+
+  // pastikan PRICE_MAP ada (online/offline)
+  const priceMapReady = PRICE_MAP && Object.keys(PRICE_MAP).length > 0;
+  if (!priceMapReady) PRICE_MAP = loadPriceMapCache();
+
+  const v = PRICE_MAP?.[itemCode]?.[tierKey];
+  if(v === undefined || v === null || v === "") return null;
+
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}function buildPriceBookTooltip(itemCode){
+  if(!itemCode) return "";
+// pastikan PACKING_MAP ada (online/offline)
+if(!PACKING_MAP || Object.keys(PACKING_MAP).length === 0){
+  PACKING_MAP = loadPackingMapCache();
+}
+
+  // isi karton
+  const pcsPerKarton = Number(PACKING_MAP?.[itemCode] || 0);
+
+  // ambil tier utama
+  const umum     = getTierPrice(itemCode, "umum");
+  const member   = getTierPrice(itemCode, "member");
+  const reseller = getTierPrice(itemCode, "reseller");
+  const agen     = getTierPrice(itemCode, "agen");
+
+  // ambil lv1 saja (lv2/lv3 tidak dipakai)
+  const lv1 = getTierPrice(itemCode, "lv1_pcs");
+
+  const fmt = (n) => (n === null ? "-" : formatRupiah(n));
+
+  const totalKarton = (hargaPcs) => {
+    if(!pcsPerKarton || pcsPerKarton <= 0) return "-";
+    if(hargaPcs === null) return "-";
+    return formatRupiah(hargaPcs * pcsPerKarton);
+  };
+
+  const lines = [];
+
+  // tier utama
+  lines.push(`Umum: ${fmt(umum)}`);
+  lines.push(`Member: ${fmt(member)}`);
+  lines.push(`Reseller (min 2): ${fmt(reseller)}`);
+  lines.push(`Agen (min 3): ${fmt(agen)}`);
+
+  // hanya tampilkan lv1 (tanpa teks "Lv1 /pcs:")
+  if (lv1 !== null) {
+    lines.push(`---`);
+
+    // Baris utama: harga pcs
+    let extra = "";
+
+    // Kalau ada karton → tampilkan harga karton
+    if (pcsPerKarton) {
+      extra = ` | Karton (${pcsPerKarton} pcs): ${totalKarton(lv1)}`;
+    }
+
+    lines.push(`${fmt(lv1)}${extra}`);
+  } else {
+    // kalau lv1 gak ada, tapi karton ada → info isi karton saja
+    if (pcsPerKarton) {
+      lines.push(`---`);
+      lines.push(`Karton: ${pcsPerKarton} pcs`);
+    }
+  }
+
+  return lines.filter(Boolean).join("\n");
+}
 
 /* =====================================================
    LOAD CUSTOMERS
@@ -1441,16 +1451,11 @@ if (!outOfStock || !requireStock) {
         <div class="product-name">${p.item_name}</div>
       </div>
       <div class="product-footer">
-        <div class="product-price">
- <span class="price-tooltip-wrap" data-tooltip>
-  <span class="price-tooltip-trigger">
-    ${formatRupiah(getFinalPrice(p.item_code, 1))}
-  </span>
-  <span class="price-tooltip-box">${buildPriceBookTooltip(p.item_code)}</span>
-</span>
-
-
+        <div class="product-price"
+     title="${buildPriceBookTooltip(p.item_code)}">
+  ${formatRupiah(getFinalPrice(p.item_code, 1))}
 </div>
+
 
         <div class="product-stock">Stok ${p.available_qty}</div>
       </div>`;
@@ -1459,7 +1464,6 @@ if (!outOfStock || !requireStock) {
 
   // ✅ apply short / normal SETELAH render selesai
   applyProductViewMode();
-	attachPriceTooltipPositioning();
 }
 
 
@@ -1731,13 +1735,9 @@ function renderCart(){
       </div>
     `;
     itemCount.textContent=count;
-cartSubtotal.textContent=formatRupiah(total);
-cartTotal.textContent=formatRupiah(total);
-updateSwitchCashierButton();
-
-// ✅ wajib dipanggil tiap render
-attachPriceTooltipPositioning();
-
+    cartSubtotal.textContent=formatRupiah(total);
+    cartTotal.textContent=formatRupiah(total);
+    updateSwitchCashierButton();
     return;
   }
 
@@ -1747,18 +1747,13 @@ attachPriceTooltipPositioning();
     const isManual = i.price_manual === true;
 
     el.innerHTML=`
-      <div class="cart-item-price"
+     <div class="cart-item-price"
      onclick="enablePriceEdit('${i.code}')"
-     style="cursor:pointer; ${isManual ? "color:#e53935;font-weight:800;" : ""}">
-  
-  <span class="price-tooltip-wrap" data-tooltip>
-  <span class="price-tooltip-trigger">${formatRupiah(i.price)}</span>
-  <span class="price-tooltip-box">${buildPriceBookTooltip(i.code || i.itemCode)}</span>
-</span>
-
-  ${isManual ? `<span style="font-size:11px;margin-left:6px;">(manual)</span>` : ``}
-</div>
-
+     style="cursor:pointer; ${isManual ? "color:#e53935;font-weight:800;" : ""}"
+     title="${buildPriceBookTooltip(i.code)}">
+        ${formatRupiah(i.price)}
+        ${isManual ? `<span style="font-size:11px;margin-left:6px;">(manual)</span>` : ``}
+      </div>
 
       <div class="cart-item-name">${i.name}</div>
       <div class="cart-item-code">${i.code}</div>
@@ -3440,7 +3435,7 @@ function bindBestPeriodButtons(){
    INIT
 ===================================================== */
 
-document.addEventListener("DOMContentLoaded", async () => {
+(async () => {
 
   // 1️⃣ load kasir dulu
   loadCashier();
@@ -3499,12 +3494,6 @@ if (isOnline()) {
   page = 1;
   await loadProducts();
   renderCart();
-	// ✅ FIX: paksa rerender cart setelah panel sudah tampil
-setTimeout(() => {
-  renderCart();
-  updateSwitchCashierButton();
-}, 50);
-
   updateOrderNumberUI();
   updateSwitchCashierButton();
 
@@ -3520,7 +3509,7 @@ if (isOnline()) {
   syncOfflineOrdersToServer();
 }
 
-});
+})();
 
 
 // ==============================
