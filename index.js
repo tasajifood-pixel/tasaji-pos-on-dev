@@ -63,6 +63,8 @@ const btnFinishPayment = document.getElementById("btnFinishPayment");
 
 const txnSearchInput = document.getElementById("txnSearchInput");
 const txnList = document.getElementById("txnList");
+const txnPayFilter = document.getElementById("txnPayFilter");
+
 const txnDetailTitle = document.getElementById("txnDetailTitle");
 const txnDetailSub = document.getElementById("txnDetailSub");
 const txnDetailBody = document.getElementById("txnDetailBody");
@@ -2775,8 +2777,10 @@ function initTxnFilterUI(){
   const fromEl   = document.getElementById("txnDateFrom");
   const toEl     = document.getElementById("txnDateTo");
   const filterEl = document.getElementById("txnCashierFilter");
+  const payEl    = document.getElementById("txnPayFilter");
 
   if(!fromEl || !toEl || !filterEl) return;
+
 
   // default: hari ini
   const today = new Date();
@@ -2792,20 +2796,33 @@ function initTxnFilterUI(){
 const saved = localStorage.getItem("txn_cashier_filter"); // "ALL" | "ACTIVE"
 filterEl.value = saved || "ACTIVE";
 if (!saved) localStorage.setItem("txn_cashier_filter", filterEl.value);
+// default: metode pembayaran (ingat pilihan)
+const savedPay = localStorage.getItem("txn_pay_filter"); // "ALL" | "Cash" | "QRIS" | ...
+if (payEl) {
+  payEl.value = savedPay || "ALL";
+  if (!savedPay) localStorage.setItem("txn_pay_filter", payEl.value);
+}
 
 
 
-  if(!TXN_FILTER_BOUND){
-    TXN_FILTER_BOUND = true;
+ if(!TXN_FILTER_BOUND){
+  TXN_FILTER_BOUND = true;
 
-    fromEl.addEventListener("change", () => loadTransactions(true));
-    toEl.addEventListener("change", () => loadTransactions(true));
-    filterEl.addEventListener("change", () => {
-  localStorage.setItem("txn_cashier_filter", filterEl.value);
-  loadTransactions(true);
-});
+  fromEl.addEventListener("change", () => loadTransactions(true));
+  toEl.addEventListener("change", () => loadTransactions(true));
 
+  filterEl.addEventListener("change", () => {
+    localStorage.setItem("txn_cashier_filter", filterEl.value);
+    loadTransactions(true);
+  });
+
+  if (payEl) {
+    payEl.addEventListener("change", () => {
+      localStorage.setItem("txn_pay_filter", payEl.value);
+      loadTransactions(true);
+    });
   }
+}
 }
 
 /* =====================================================
@@ -2960,6 +2977,10 @@ const cashierFilter =
   document.getElementById("txnCashierFilter")?.value
   || localStorage.getItem("txn_cashier_filter")
   || "ACTIVE";
+const payFilter =
+  document.getElementById("txnPayFilter")?.value
+  || localStorage.getItem("txn_pay_filter")
+  || "ALL";
 
 const activeCashierId =
   CASHIER_ID || localStorage.getItem("pos_cashier_id") || null;
@@ -2992,7 +3013,7 @@ const activeCashierId =
   if (!isOnline()) {
     const kw = ((txnSearchInput?.value || "").trim()).toLowerCase();
 
-    let list = loadOfflineTransactions()
+   let list = loadOfflineTransactions()
   .filter(x => {
     // filter tanggal
     if (startISO && endISO) {
@@ -3005,11 +3026,15 @@ const activeCashierId =
 
     // filter kasir
     if (cashierFilter === "ACTIVE" && activeCashierId) {
-      return x.cashier_id === activeCashierId;
+      if (x.cashier_id !== activeCashierId) return false;
     }
+
+    // ✅ filter metode pembayaran (OFFLINE)
+    if (!txnPayFilterMatchOffline(x.payments, payFilter)) return false;
 
     return true; // ALL kasir
   });
+
 
 
 
@@ -3034,10 +3059,11 @@ const activeCashierId =
   const from = (TXN_PAGE-1) * TXN_PAGE_SIZE;
   const to = from + TXN_PAGE_SIZE - 1;
 
-  let q = sb
-    .from("pos_sales_orders")
-    .select("salesorder_no,transaction_date,customer_name,shipping_phone,grand_total,is_paid", { count:"exact" })
-    .order("transaction_date", { ascending:false });
+ let q = sb
+  .from("pos_sales_orders")
+  .select("salesorder_no,transaction_date,customer_name,shipping_phone,grand_total,is_paid,payment_method", { count:"exact" })
+  .order("transaction_date", { ascending:false });
+
 	// filter tanggal (from - to)
 if (startISO && endISO) {
   q = q.gte("transaction_date", startISO)
@@ -3046,6 +3072,12 @@ if (startISO && endISO) {
 // filter kasir
 if (cashierFilter === "ACTIVE" && activeCashierId) {
   q = q.eq("cashier_id", activeCashierId);
+}
+// ✅ filter metode pembayaran (ONLINE)
+const like = txnPayFilterToIlike(payFilter);
+if (like) {
+  // payment_method di header itu string gabungan, jadi pakai ilike
+  q = q.ilike("payment_method", like);
 }
 
   // search
@@ -3791,6 +3823,29 @@ function normPayKey(label){
 
   return "Lainnya";
 }
+function txnPayFilterMatchOffline(payments, selectedKey){
+  if (!selectedKey || selectedKey === "ALL") return true;
+  const list = payments || [];
+  return list.some(p => normPayKey(p.label || p.payment_method) === selectedKey);
+}
+
+// untuk ONLINE: payment_method di header adalah gabungan label, contoh: "Kas, QRIS GoPay"
+function txnPayFilterToIlike(selectedKey){
+  const k = String(selectedKey || "").toLowerCase();
+  if (!k || k === "all") return null;
+
+  // pola yang paling aman sesuai label yang kamu simpan
+  if (k === "cash") return "%kas%";                // "Kas"
+  if (k === "qris") return "%qris%";               // "QRIS GoPay"
+  if (k === "debit bca") return "%debit bca%";
+  if (k === "debit mandiri") return "%debit mandiri%";
+  if (k === "transfer bca") return "%transfer bca%";
+  if (k === "transfer mandiri") return "%transfer mandiri%";
+  if (k === "piutang") return "%piutang%";
+
+  return `%${selectedKey}%`;
+}
+
 function makeSummaryCards({ trxCount, omzet, payMap }) {
   const box = document.getElementById("reportSummary");
   if (!box) return;
