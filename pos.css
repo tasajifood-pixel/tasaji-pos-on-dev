@@ -857,8 +857,8 @@ body{
   width: 100%;
   height: 54px;
   border-radius: 14px;
-  border: none;
   font-size: 16px;
+  border: none;
   font-weight: 800;
   cursor: pointer;
   transition: .15s;
@@ -1627,4 +1627,108 @@ body{
   background:#fde68a;
   border-color:#f59e0b;
   color:#92400e;
+}
+/* ==========================
+   TXN TOOLBAR (TRANS)
+========================== */
+.txn-toolbar{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  padding:10px 12px;
+  background:#fff;
+  border:1px solid #eee;
+  border-radius:14px;
+  box-shadow:0 6px 18px rgba(0,0,0,.06);
+}
+
+.txn-toolbar .search-input{
+  flex:1 1 320px;
+  min-width:280px;
+}
+
+.txn-toolbar .search-input input{
+  width:100%;
+  height:36px;
+  border:1px solid #e6e6ea;
+  border-radius:12px;
+  padding:0 12px;
+  font-size:13px;
+  background:#fafafa;
+  outline:none;
+}
+
+.txn-toolbar .txn-filter{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.txn-toolbar .txn-label{
+  font-size:12px;
+  font-weight:800;
+  color:#333;
+  margin-right:2px;
+}
+
+.txn-toolbar .txn-date-range{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 8px;
+  border:1px solid #eee;
+  border-radius:12px;
+  background:#fafafa;
+}
+
+.txn-toolbar .txn-sep{
+  font-weight:800;
+  color:#666;
+}
+
+.txn-toolbar input[type="date"],
+.txn-toolbar select{
+  height:36px;
+  border:1px solid #e6e6ea;
+  border-radius:12px;
+  padding:0 10px;
+  font-size:13px;
+  background:#fff;
+}
+
+.txn-toolbar .btn-outline{
+  height:36px;
+  border-radius:12px;
+  padding:0 12px;
+  font-size:13px;
+}
+
+.txn-toolbar .txn-actions{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.txn-toolbar .txn-actions .btn{
+  height:36px;
+  border-radius:12px;
+  padding:0 14px;
+}
+
+.txn-toolbar .btn-refresh{
+  width:36px;
+  padding:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* RESPONSIVE: biar mobile aman (nggak rusak) */
+@media (max-width: 900px){
+  .txn-toolbar .search-input{ flex:1 1 100%; min-width:0; }
+  .txn-toolbar .txn-actions{ width:100%; justify-content:flex-end; }
+  .txn-toolbar .txn-date-range{ width:100%; justify-content:space-between; }
 }
