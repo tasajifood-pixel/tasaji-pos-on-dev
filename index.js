@@ -87,8 +87,6 @@ const setAutoSyncHours = document.getElementById("setAutoSyncHours");
 
 
 
-/* event input cash */
-cashInput.addEventListener("input", onCashInputChange);
 // customer autocomplete
 if (customerInput) {
   customerInput.addEventListener("input", searchCustomer);
@@ -798,7 +796,7 @@ if (setNote2) setNote2.value = STORE_NOTE_2 || "";
 const sAutoSync = localStorage.getItem("setting_autoSyncHours");
 if (sAutoSync) AUTO_SYNC_HOURS = Number(sAutoSync) || 3;
 
-const setAuto = document.getElementById("setAutoSyncHours");
+
 if (setAutoSyncHours) setAutoSyncHours.value = AUTO_SYNC_HOURS;
 
 }
@@ -1898,23 +1896,6 @@ function formatLineAmount(n){
   return "Rp" + Number(n||0).toLocaleString("id-ID") + ",00";
 }
 
-function totalPaidOnly(){
-  // total yang benar-benar dibayar (cash + noncash), piutang TIDAK dihitung bayar
-  return PAYMENT_LINES
-    .filter(x => x.method !== "piutang")
-    .reduce((s,x)=>s + (Number(x.amount)||0), 0);
-}
-
-function piutangAmount(){
-  const p = PAYMENT_LINES.find(x => x.method === "piutang");
-  return Number(p?.amount || 0);
-}
-
-function remainingToPay(){
-  // sisa yang masih harus dibayar (tanpa memperhitungkan piutang)
-  const rem = calcTotal() - totalPaidOnly();
-  return rem > 0 ? rem : 0;
-}
 
 function upsertPayLine(method, amount){
   amount = Number(amount || 0);
@@ -3820,6 +3801,8 @@ function normPayKey(label){
   // TRANSFER
   if (t.includes("transfer bca")) return "Transfer BCA";
   if (t.includes("transfer mandiri")) return "Transfer Mandiri";
+  // PIUTANG
+  if (t.includes("piutang")) return "Piutang";
 
   return "Lainnya";
 }
@@ -3857,6 +3840,8 @@ function makeSummaryCards({ trxCount, omzet, payMap }) {
     { key: "Debit Mandiri", label: "Debit Mandiri" },
     { key: "Transfer BCA", label: "Transfer BCA" },
     { key: "Transfer Mandiri", label: "Transfer Mandiri" },
+	{ key: "Piutang", label: "Piutang" },
+
   ];
 
   // susun kartu
@@ -3939,6 +3924,8 @@ function renderByCashier(rows){
         <div class="rpt-right">Debit Mandiri</div>
         <div class="rpt-right">Transfer BCA</div>
         <div class="rpt-right">Transfer Mandiri</div>
+		<div class="rpt-right">Piutang</div>
+
         <div class="rpt-right">Total Omzet</div>
       </div>
 
@@ -3957,6 +3944,8 @@ function renderByCashier(rows){
           <div class="rpt-right">${fmt(r.debit_mandiri)}</div>
           <div class="rpt-right">${fmt(r.transfer_bca)}</div>
           <div class="rpt-right">${fmt(r.transfer_mandiri)}</div>
+		  <div class="rpt-right">${fmt(r.piutang)}</div>
+
 
           <div class="rpt-right"><b>${formatRupiah(r.omzet || 0)}</b></div>
         </div>
@@ -3979,8 +3968,14 @@ function computeAppliedPayment(total, payList){
     const k = normPayKey(x.label);
     sumByKey[k] = (sumByKey[k] || 0) + x.amount;
 
-    if (k === "Cash") sumCash += x.amount;
-    else sumNonCash += x.amount;
+        if (k === "Cash") {
+      sumCash += x.amount;
+    } else if (k === "Piutang") {
+      // ✅ piutang bukan pembayaran, jangan masuk sumNonCash
+    } else {
+      sumNonCash += x.amount;
+    }
+
   }
 
   const remainingForCash = Math.max(0, Number(total || 0) - sumNonCash);
@@ -4040,31 +4035,36 @@ async function loadReport(forceRefresh){
     const byCashier = {};
 
     function bumpCashier(cashier_id, cashier_name, add){
-      const id = cashier_id || "UNKNOWN";
-      if(!byCashier[id]){
-        byCashier[id] = {
-          cashier_id: id,
-          cashier_name: cashier_name || "UNKNOWN",
-          trxCount: 0,
-          omzet: 0,
-          cash: 0,
-          qris: 0,
-          debit_bca: 0,
-          debit_mandiri: 0,
-          transfer_bca: 0,
-          transfer_mandiri: 0
-        };
-      }
-      const x = byCashier[id];
-      x.trxCount += (add.trxCount||0);
-      x.omzet += (add.omzet||0);
-      x.cash += (add.cash||0);
-      x.qris += (add.qris||0);
-      x.debit_bca += (add.debit_bca||0);
-      x.debit_mandiri += (add.debit_mandiri||0);
-      x.transfer_bca += (add.transfer_bca||0);
-      x.transfer_mandiri += (add.transfer_mandiri||0);
-    }
+  const id = cashier_id || "UNKNOWN";
+
+  if (!byCashier[id]) {
+    byCashier[id] = {
+      cashier_id: id,
+      cashier_name: cashier_name || "UNKNOWN",
+      trxCount: 0,
+      omzet: 0,
+      cash: 0,
+      qris: 0,
+      debit_bca: 0,
+      debit_mandiri: 0,
+      transfer_bca: 0,
+      transfer_mandiri: 0,
+      piutang: 0
+    };
+  }
+
+  const x = byCashier[id];
+  x.trxCount += (add.trxCount || 0);
+  x.omzet += (add.omzet || 0);
+  x.cash += (add.cash || 0);
+  x.qris += (add.qris || 0);
+  x.debit_bca += (add.debit_bca || 0);
+  x.debit_mandiri += (add.debit_mandiri || 0);
+  x.transfer_bca += (add.transfer_bca || 0);
+  x.transfer_mandiri += (add.transfer_mandiri || 0);
+  x.piutang += (add.piutang || 0);
+}
+
 
     // ====== OFFLINE ======
     const offlineList = loadOfflineTransactions();
@@ -4100,7 +4100,10 @@ Object.entries(appliedObj).forEach(([k, amt]) => {
   debit_bca: Number(appliedObj["Debit BCA"] || 0),
   debit_mandiri: Number(appliedObj["Debit Mandiri"] || 0),
   transfer_bca: Number(appliedObj["Transfer BCA"] || 0),
-  transfer_mandiri: Number(appliedObj["Transfer Mandiri"] || 0)
+  transfer_mandiri: Number(appliedObj["Transfer Mandiri"] || 0),
+piutang: Number(appliedObj["Piutang"] || 0)
+
+
 });
 
     }
@@ -4170,7 +4173,9 @@ Object.entries(appliedObj).forEach(([k, amt]) => {
     debit_bca: Number(appliedObj["Debit BCA"] || 0),
     debit_mandiri: Number(appliedObj["Debit Mandiri"] || 0),
     transfer_bca: Number(appliedObj["Transfer BCA"] || 0),
-    transfer_mandiri: Number(appliedObj["Transfer Mandiri"] || 0)
+    transfer_mandiri: Number(appliedObj["Transfer Mandiri"] || 0),
+	piutang: Number(appliedObj["Piutang"] || 0)
+
   });
 });
 
