@@ -802,14 +802,13 @@ body{
   font-size:13px;
 }
 
-/* grid metode */
-.pay-method{ margin-top: 16px; }
 .pay-method-grid{
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);  /* ✅ dari 5 jadi 6 */
   gap: 10px;
   margin-top: 10px;
 }
+
 
 .pay-method-btn{
   border: 1px solid #e5e7eb;
@@ -1426,7 +1425,6 @@ body{
   overflow:hidden;
   background:#fff;
 }
-
 .rpt-row{
   display:grid;
   grid-template-columns:
@@ -1438,13 +1436,15 @@ body{
     1fr     /* Debit Mandiri */
     1fr     /* Transfer BCA */
     1fr     /* Transfer Mandiri */
+    1fr     /* Piutang */
     1.2fr;  /* Total Omzet */
   gap:10px;
   padding:10px 12px;
   border-bottom:1px solid #f1f1f1;
-  font-size:13px;
+  font-size:12px;
   align-items:center;
 }
+
 
 .rpt-row.head{
   background:#fafafa;
