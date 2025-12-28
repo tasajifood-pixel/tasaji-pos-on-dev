@@ -268,29 +268,53 @@
       ================================================== -->
       <section class="txn-panel" id="panel-transactions">
         <div class="txn-toolbar">
-          <div class="search-input">
-            <input id="txnSearchInput" placeholder="Cari No Order / Nama / Telepon">
-          </div>
-		  <!-- FILTER TRANSAKSI (mirip laporan) -->
-<div class="txn-filter" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-  <div style="font-size:12px; font-weight:700; color:#333;">Tanggal</div>
 
-  <input type="date" id="txnDateFrom" style="width:150px;" />
-  <span style="font-weight:700;">–</span>
-  <input type="date" id="txnDateTo" style="width:150px;" />
+  <!-- SEARCH -->
+  <div class="search-input">
+    <input id="txnSearchInput" placeholder="Cari No Order / Nama / Telepon">
+  </div>
 
-  <button class="btn-outline" type="button">Hari Ini</button>
-  <button class="btn-outline" type="button">Kemarin</button>
+  <!-- FILTER -->
+  <div class="txn-filter">
 
-  <select id="txnCashierFilter" style="width:220px;">
-    <option value="ALL">Semua Kasir</option>
-    <option value="ACTIVE">Kasir Aktif Saja</option>
-  </select>
+    <span class="txn-label">Tanggal</span>
+
+    <div class="txn-date-range">
+      <input type="date" id="txnDateFrom" />
+      <span class="txn-sep">–</span>
+      <input type="date" id="txnDateTo" />
+    </div>
+
+    <div class="txn-quick">
+      <button class="btn-outline" type="button" id="btnTxnToday">Hari Ini</button>
+      <button class="btn-outline" type="button" id="btnTxnYesterday">Kemarin</button>
+    </div>
+
+    <select id="txnCashierFilter">
+      <option value="ALL">Semua Kasir</option>
+      <option value="ACTIVE">Kasir Aktif Saja</option>
+    </select>
+
+    <!-- ✅ METODE PEMBAYARAN PINDAH KE TRANSAKSI -->
+    <select id="txnPayFilter">
+      <option value="ALL">Semua Metode</option>
+      <option value="CASH">Cash</option>
+      <option value="QRIS">QRIS</option>
+      <option value="DEBIT">Debit</option>
+      <option value="TRANSFER">Transfer</option>
+      <option value="PIUTANG">Piutang</option>
+    </select>
+
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="txn-actions">
+    <button class="btn btn-cari" id="btnTxnCari">Cari</button>
+    <button class="btn btn-refresh" id="btnTxnRefresh" title="Refresh">↻</button>
+  </div>
+
 </div>
 
-          <button class="btn btn-cari">Cari</button>
-          <button class="btn" title="Refresh">↻</button>
-        </div>
 
         <div class="txn-body">
           <div class="txn-list">
@@ -445,12 +469,14 @@
 
 
         <button class="btn-outline" type="button">Hari Ini</button>
-        <button class="btn-outline" type="button">Kemarin</button>
+<button class="btn-outline" type="button">Kemarin</button>
 
-        <select id="reportCashierFilter" style="width:240px;">
-          <option value="ALL">Semua Kasir</option>
-          <option value="ACTIVE">Kasir Aktif Saja</option>
-        </select>
+
+<select id="reportCashierFilter" style="width:220px;">
+  <option value="ALL">Semua Kasir</option>
+  <option value="ACTIVE">Kasir Aktif Saja</option>
+</select>
+
 
       </div>
     </div>
