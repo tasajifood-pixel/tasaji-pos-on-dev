@@ -1879,10 +1879,12 @@ function methodLabel(method){
     debit_bca: "Debit BCA",
     debit_mandiri: "Debit Mandiri",
     qris_gopay: "QRIS GoPay",
-    transfer_bca: "Transfer BCA"
+    transfer_bca: "Transfer BCA",
+    piutang: "Piutang" // ✅ tambah ini
   };
   return map[method] || method;
 }
+
 
 function formatLineAmount(n){
   return "Rp" + Number(n||0).toLocaleString("id-ID") + ",00";
@@ -1945,21 +1947,28 @@ function recalcPaymentStatus(){
   const change = (hasCash && paid > total) ? (paid - total) : 0;
   changeOutput.textContent = formatRupiah(change);
 
-  const isLunas = rem <= 0 && PAYMENT_LINES.length > 0;
+  const isPiutang = PAYMENT_LINES.some(x => x.method === "piutang");
 
-  if(isLunas){
-    btnFinishPayment.classList.remove("disabled");
-    btnFinishPayment.classList.add("active");
-    btnFinishPayment.disabled = false;
-  } else {
-    btnFinishPayment.classList.remove("active");
-    btnFinishPayment.classList.add("disabled");
-    btnFinishPayment.disabled = true;
-  }
+const isLunas = (!isPiutang) && (rem <= 0) && PAYMENT_LINES.length > 0;
+
+// ✅ kalau piutang → tetap boleh finish, tapi bukan "lunas"
+const canFinish = (isPiutang && PAYMENT_LINES.length > 0) || isLunas;
+
+
+  if(canFinish){
+  btnFinishPayment.classList.remove("disabled");
+  btnFinishPayment.classList.add("active");
+  btnFinishPayment.disabled = false;
+} else {
+  btnFinishPayment.classList.remove("active");
+  btnFinishPayment.classList.add("disabled");
+  btnFinishPayment.disabled = true;
+}
+
 }
 
 function upsertCashLine(amount){
-  // ✅ SINGLE PAYMENT MODE: hanya boleh 1 line
+  
   if (amount <= 0) {
     PAYMENT_LINES = [];
     recalcPaymentStatus();
@@ -2057,22 +2066,39 @@ function bindPaymentMethodButtons(){
 
       selectedPaymentMethod = btn.dataset.method;
 
-      if (selectedPaymentMethod === "cash") {
+     if (selectedPaymentMethod === "cash") {
   cashInput.disabled = false;
   cashInput.readOnly = false;
   cashInput.focus();
 
-  // ✅ refresh tombol quick cash sesuai total terbaru
   renderQuickCashButtons();
-
   if (quickCash) quickCash.style.display = "flex";
+
+} else if (selectedPaymentMethod === "piutang") {
+
+  // ✅ PIUTANG: tidak ada input cash, tidak ada quick cash
+  cashInput.value = "";
+  cashInput.disabled = true;
+  cashInput.readOnly = true;
+  if (quickCash) quickCash.style.display = "none";
+
+  // ✅ set payment line khusus piutang
+  PAYMENT_LINES = [{
+    method: "piutang",
+    label: methodLabel("piutang"),
+    amount: calcTotal() // total dicatat sebagai piutang
+  }];
+
+  recalcPaymentStatus();
+
 } else {
 
-        cashInput.disabled = true;
-        cashInput.readOnly = true;
-        if (quickCash) quickCash.style.display = "none";
-        addNonCashLine(selectedPaymentMethod);
-      }
+  cashInput.disabled = true;
+  cashInput.readOnly = true;
+  if (quickCash) quickCash.style.display = "none";
+  addNonCashLine(selectedPaymentMethod);
+}
+
 
       recalcPaymentStatus();
     });
@@ -2372,7 +2398,7 @@ async function saveSalesOrderHeader() {
     updateOrderNumberUI();
     saveOrderState();
   }
-
+const isPiutang = PAYMENT_LINES?.some(p => p.method === "piutang");
   const payload = {
 
     salesorder_no: CURRENT_SALESORDER_NO,
@@ -2384,10 +2410,11 @@ async function saveSalesOrderHeader() {
     transaction_date: new Date().toISOString(),
     sub_total: calcTotal(),
     grand_total: calcTotal(),
-    payment_method: PAYMENT_LINES.map(p => p.label).join(", "),
+    payment_method: isPiutang ? "Piutang" : (PAYMENT_LINES || []).map(p => p.label).join(", "),
     location_id: -1,
     store_id: -100,
-    is_paid: true,
+    is_paid: isPiutang ? false : true,
+
 
 // ✅ status sync Jubelio (queue)
 jubelio_synced: false,
@@ -2451,6 +2478,9 @@ async function saveSalesOrderItems(salesorderNo) {
 async function saveSalesOrderPayments(salesorderNo) {
   if (!PAYMENT_LINES || PAYMENT_LINES.length === 0) return;
 
+  const isPiutang = PAYMENT_LINES.some(p => p.method === "piutang");
+  if (isPiutang) return; // ✅ piutang belum ada pembayaran, jadi jangan insert
+
   const paymentsPayload = PAYMENT_LINES.map(p => ({
     salesorder_no: salesorderNo,
     payment_method: p.label,
@@ -2466,6 +2496,7 @@ async function saveSalesOrderPayments(salesorderNo) {
     throw error;
   }
 }
+
 
 /* =====================================================
    STRUK: GENERATE DARI DATA (reprint / selesai bayar)
