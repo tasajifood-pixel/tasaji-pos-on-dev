@@ -1966,22 +1966,49 @@ const canFinish = (isPiutang && PAYMENT_LINES.length > 0) || isLunas;
 }
 
 }
+function upsertPaymentLine({ method, label, amount }) {
+  if (!PAYMENT_LINES) PAYMENT_LINES = [];
 
-function upsertCashLine(amount){
-  
-  if (amount <= 0) {
-    PAYMENT_LINES = [];
+  // normalize amount
+  const amt = Number(amount) || 0;
+
+  // kalau 0 / minus -> hapus line
+  if (amt <= 0) {
+    PAYMENT_LINES = PAYMENT_LINES.filter(p => p.method !== method);
     recalcPaymentStatus();
+    saveOrderState?.();
     return;
   }
 
-  PAYMENT_LINES = [{
-    method: "cash",
-    label: methodLabel("cash"),
-    amount: Number(amount || 0)
-  }];
+  const idx = PAYMENT_LINES.findIndex(p => p.method === method);
+
+  if (idx >= 0) {
+    // update line existing
+    PAYMENT_LINES[idx].amount = amt;
+    PAYMENT_LINES[idx].label = label; // jaga2 kalau label berubah
+  } else {
+    // insert line baru
+    PAYMENT_LINES.push({
+      method,
+      label,
+      amount: amt
+    });
+  }
 
   recalcPaymentStatus();
+  saveOrderState?.();
+}
+
+function upsertCashLine(amount) {
+  upsertPaymentLine({
+    method: "cash",
+    label: "Kas",
+    amount
+  });
+}
+function upsertNonCashLine(method, label, amount) {
+  // method contoh: "qris_gopay" / "debit_bca"
+  upsertPaymentLine({ method, label, amount });
 }
 
 function setCash(amount) {
@@ -2009,43 +2036,38 @@ function addNonCashLine(method){
     return;
   }
 
-  // ✅ SINGLE PAYMENT MODE: non-cash selalu FULL TOTAL
-  PAYMENT_LINES = [{
-    method,
-    label: methodLabel(method),
-    amount: total
-  }];
+  // default amount = sisa tagihan
+  const rem = remainingAmount();
+  const defaultAmt = rem > 0 ? rem : total; // kalau sudah lunas, fallback total
+
+  upsertNonCashLine(method, methodLabel(method), defaultAmt);
 
   recalcPaymentStatus();
 }
-
 function removePayLine(idx){
-  // ✅ SINGLE PAYMENT MODE: kalau dihapus → reset seluruh payment
-  PAYMENT_LINES = [];
+  if (!PAYMENT_LINES || PAYMENT_LINES.length === 0) return;
 
-  // reset state metode
-  selectedPaymentMethod = null;
+  PAYMENT_LINES.splice(idx, 1);
 
-  // reset UI metode (tombol aktif hilang)
-  document.querySelectorAll(".pay-method-btn")
-    .forEach(b => b.classList.remove("active"));
+  if (PAYMENT_LINES.length === 0) {
+    selectedPaymentMethod = null;
 
-  // reset input cash
-  if (cashInput) {
-    cashInput.value = "";
-    cashInput.disabled = false;
-    cashInput.readOnly = false;
+    document.querySelectorAll(".pay-method-btn")
+      .forEach(b => b.classList.remove("active"));
+
+    if (cashInput) {
+      cashInput.value = "";
+      cashInput.disabled = false;
+      cashInput.readOnly = false;
+    }
+
+    if (quickCash) quickCash.style.display = "none";
+    if (changeOutput) changeOutput.textContent = formatRupiah(0);
   }
 
-  // sembunyikan quick cash
-  if (quickCash) quickCash.style.display = "none";
-
-  // reset kembalian
-  if (changeOutput) changeOutput.textContent = formatRupiah(0);
-
   recalcPaymentStatus();
+  saveOrderState?.();
 }
-
 
 
 function bindPaymentMethodButtons(){
@@ -2054,8 +2076,6 @@ function bindPaymentMethodButtons(){
     btn.dataset.bound = "1";
 
     btn.addEventListener("click", () => {
-
-      resetPaymentLines();
 
       cashInput.value = "";
       changeOutput.textContent = formatRupiah(0);
@@ -2081,6 +2101,10 @@ function bindPaymentMethodButtons(){
   cashInput.disabled = true;
   cashInput.readOnly = true;
   if (quickCash) quickCash.style.display = "none";
+if (PAYMENT_LINES.length > 0) {
+  alert("Piutang harus berdiri sendiri. Hapus pembayaran lain dulu.");
+  return;
+}
 
   // ✅ set payment line khusus piutang
   PAYMENT_LINES = [{
