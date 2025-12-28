@@ -346,10 +346,11 @@
             </div>
 
             <div class="txn-actions" id="txnDetailActions" style="display:none;">
-  <button class="btn-outline">🖨 Cetak Ulang Struk</button>
-  <button class="btn-outline">☁️ Sync Jubelio</button>
-  <button class="btn-primary">🔁 Pesan Ulang</button>
+  <button class="btn-outline" onclick="txnReprintReceipt()">🖨 Cetak Ulang Struk</button>
+  <button class="btn-danger" id="btnTxnCancel" onclick="txnCancelTransaction()">⛔ Batalkan</button>
+  <button class="btn-primary" onclick="txnReorder()">🔁 Pesan Ulang</button>
 </div>
+
 
           </div>
         </div>
