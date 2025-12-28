@@ -23,6 +23,38 @@ const sb = window.supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwamZkeHBkYXF0b3Bqb3Jxb29kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NjU2NDUsImV4cCI6MjA3NjU0MTY0NX0.7cSIF32p9SHaHHlUcMFrrQSq7JBOdP4LneEvcMRrtXU"
 );
 	
+// ===============================
+// CANCEL CACHE (READ FROM DB)
+// ===============================
+
+
+function toISOStart(dateStr) {
+  return new Date(dateStr + "T00:00:00").toISOString();
+}
+
+function toISOEnd(dateStr) {
+  return new Date(dateStr + "T23:59:59").toISOString();
+}
+
+async function fetchCanceledOrders(dateFromStr, dateToStr) {
+  const dateFromISO = toISOStart(dateFromStr);
+  const dateToISO = toISOEnd(dateToStr);
+
+  const { data, error } = await supabase
+    .from("pos_canceled_orders")
+    .select("salesorder_no")
+    .gte("created_at", dateFromISO)
+    .lte("created_at", dateToISO);
+
+  if (error) {
+    console.error("fetchCanceledOrders error:", error);
+    canceledOrdersSet = new Set();
+    return;
+  }
+
+  canceledOrdersSet = new Set((data || []).map((row) => row.salesorder_no));
+  console.log("Canceled orders loaded:", canceledOrdersSet.size);
+}
 
 /* =====================================================
    DOM REFS
@@ -148,6 +180,7 @@ let REPORT_UI_BOUND = false;
 let CASHIER_ID = null;
 let CASHIER_NAME = null;
 let AUTO_SYNC_HOURS = 3; // default
+let canceledOrdersSet = new Set();
 
 
 
@@ -765,6 +798,37 @@ function updateOrderNumberUI() {
   const el = document.getElementById("orderNo");
   if (!el) return;
     el.textContent = CURRENT_SALESORDER_NO || CURRENT_LOCAL_ORDER_NO || "-";
+}
+// ===============================
+// CANCELED ORDERS CACHE (ONLINE)
+// ===============================
+
+
+async function fetchCanceledOrders(startISO, endISO) {
+  try {
+    let q = sb
+      .from("pos_canceled_orders")
+      .select("salesorder_no");
+
+    // filter by created_at kalau ada range
+    if (startISO && endISO) {
+      q = q.gte("created_at", startISO).lte("created_at", endISO);
+    }
+
+    const { data, error } = await q;
+    if (error) throw error;
+
+    canceledOrdersSet = new Set((data || []).map(r => r.salesorder_no));
+    console.log("✅ canceledOrders loaded:", canceledOrdersSet.size);
+
+  } catch (err) {
+    console.error("❌ fetchCanceledOrders error:", err);
+    canceledOrdersSet = new Set();
+  }
+}
+
+function isCanceledOrder(orderNo) {
+  return canceledOrdersSet.has(orderNo);
 }
 
 /* =====================================================
@@ -2257,27 +2321,6 @@ async function processPayment() {
     // ✅ 4. SIMPAN PAYMENTS (INI YANG TADI KE-SKIP)
     await saveSalesOrderPayments(order.salesorder_no);
 
-    // (payload Jubelio boleh, tapi TIDAK mengganggu flow DB)
-    const jubelioPayload = buildJubelioPayload(
-      order,
-      cart.map(i => ({
-        item_id: i.jubelioItemId,
-        description: i.name,
-        qty_in_base: i.qty,
-        price: i.price,
-        amount: i.qty * i.price,
-        tax_id: 1,
-        unit: "Buah",
-        location_id: -1,
-        shipper: "Ambil Sendiri",
-        serial_no: "",
-        channel_order_detail_id: "",
-        tracking_no: ""
-      }))
-    );
-
-    await saveJubelioPayloadToOrder(order.salesorder_no, jubelioPayload);
-console.log("✅ jubelio_payload tersimpan");
 
 
 // hapus dari transaksi tersimpan (jika ada)
@@ -2325,61 +2368,6 @@ function backToEdit() {
 }
 
 
-async function saveJubelioPayloadToOrder(salesorderNo, payloadObj){
-  const { error } = await sb
-    .from("pos_sales_orders")
-    .update({
-      jubelio_payload: payloadObj,
-      jubelio_synced: false,
-      jubelio_synced_at: null,
-      jubelio_error: null
-    })
-    .eq("salesorder_no", salesorderNo);
-
-  if (error) {
-    console.error("❌ Gagal simpan jubelio_payload", error);
-    throw error;
-  }
-}
-async function txnSyncJubelio(){
-  if (!TXN_SELECTED?.salesorder_no) return;
-
-  const orderNo = TXN_SELECTED.salesorder_no;
-
-  const { data, error } = await sb
-    .from("pos_sales_orders")
-    .select("jubelio_payload,jubelio_synced,jubelio_error")
-    .eq("salesorder_no", orderNo)
-    .single();
-
-  if (error) {
-    alert("Gagal cek data sync");
-    return;
-  }
-
-  if (!data?.jubelio_payload) {
-    alert("Payload Jubelio belum tersimpan di transaksi ini.");
-    return;
-  }
-
-  // tandai ulang untuk retry sync
-  const { error: e2 } = await sb
-    .from("pos_sales_orders")
-    .update({
-      jubelio_synced: false,
-      jubelio_synced_at: null,
-      jubelio_error: null
-    })
-    .eq("salesorder_no", orderNo);
-
-  if (e2) {
-    alert("Gagal set retry sync");
-    return;
-  }
-
-  alert("OK. Transaksi ditandai untuk di-sync ke Jubelio (retry).");
-}
-
 /* =====================================================
    SALES ORDER NUMBER
 ===================================================== */
@@ -2402,61 +2390,7 @@ async function generateSalesOrderNo() {
   const seq = String(data).padStart(4, "0");
   return `TSJP-${ymd}-${hhmm}-${seq}`;
 }
-/* =====================================================
-   BUILD PAYLOAD JUBELIO
-===================================================== */
-function buildJubelioPayload(order, items) {
-  return {
-    mode: "new",
-    salesorder_id: 0,
 
-    salesorder_no: order.salesorder_no,
-    ref_no: order.salesorder_no,
-
-    contact_id: order.contact_id,
-    customer_name: order.customer_name,
-
-    transaction_date: order.transaction_date,
-
-    is_tax_included: false,
-    note: "Pesanan dari POS Offline",
-
-    sub_total: order.sub_total,
-    total_disc: 0,
-    total_tax: 0,
-    grand_total: order.grand_total,
-
-    location_id: -1,
-    store_id: -100,
-    source: 1,
-
-    is_canceled: false,
-    is_paid: true,
-
-    shipping_full_name: order.customer_name,
-    shipping_phone: normalizePhone(order.shipping_phone),
-    shipping_country: "Indonesia",
-
-    items: items.map(i => ({
-      salesorder_detail_id: 0,
-      item_id: i.item_id,
-      serial_no: "",
-      description: i.description,
-      tax_id: 1,
-      price: i.price,
-      unit: "Buah",
-      qty_in_base: i.qty_in_base,
-      disc: 0,
-      disc_amount: 0,
-      tax_amount: 0,
-      amount: i.amount,
-      location_id: -1,
-      shipper: "Ambil Sendiri",
-      channel_order_detail_id: "",
-      tracking_no: ""
-    }))
-  };
-}
 
 /* =====================================================
    SAVE SALES ORDER (HEADER/ITEMS/PAYMENTS)
@@ -2511,12 +2445,6 @@ async function saveSalesOrderHeader() {
     location_id: -1,
     store_id: -100,
     is_paid: !PAYMENT_LINES.some(p => p.method === "piutang"),
-
-// ✅ status sync Jubelio (queue)
-jubelio_synced: false,
-jubelio_synced_at: null,
-jubelio_error: null,
-jubelio_payload: null
   };
 
   const { data, error } = await sb
@@ -3033,17 +2961,20 @@ const activeCashierId =
     return;
   }
 
-  // ==========================
-  // ONLINE MODE → SUPABASE
-  // ==========================
-  const keyword = (txnSearchInput?.value || "").trim();
-  const from = (TXN_PAGE-1) * TXN_PAGE_SIZE;
-  const to = from + TXN_PAGE_SIZE - 1;
+ // ==========================
+// ONLINE MODE → SUPABASE
+// ==========================
+const keyword = (txnSearchInput?.value || "").trim();
+const from = (TXN_PAGE-1) * TXN_PAGE_SIZE;
+const to = from + TXN_PAGE_SIZE - 1;
 
- let q = sb
+
+let q = sb
   .from("pos_sales_orders")
-  .select("salesorder_no,transaction_date,customer_name,shipping_phone,grand_total,is_paid,payment_method", { count:"exact" })
+  .select("salesorder_no,transaction_date,customer_name,shipping_phone,grand_total,is_paid,payment_method,status", { count:"exact" })
+
   .order("transaction_date", { ascending:false });
+
 
 	// filter tanggal (from - to)
 if (startISO && endISO) {
@@ -3141,9 +3072,16 @@ function renderTransactionList(list){
 
   txnList.innerHTML = list.map(x => {
   const paid = x.is_paid === true;
-  const badge = paid
-    ? `<span class="badge paid">Lunas</span>`
-    : `<span class="badge unpaid">Belum</span>`;
+ const canceled = String(x.status || "").toLowerCase() === "canceled";
+
+
+const badge = canceled
+  ? `<span class="badge unpaid">Dibatalkan</span>`
+  : (paid
+      ? `<span class="badge paid">Lunas</span>`
+      : `<span class="badge unpaid">Belum</span>`
+    );
+
 
   return `
     <div class="txn-item one-line"
@@ -3298,9 +3236,15 @@ function renderTransactionDetail(txn){
   const paid = Number(h.is_paid) === 1;
 
   txnDetailSub.textContent = `${formatDateID(h.transaction_date)} • ${h.customer_name || "UMUM"}`;
-  txnDetailBadge.innerHTML = paid
-    ? `<span class="badge paid">Lunas</span>`
-    : `<span class="badge unpaid">Belum Lunas</span>`;
+  const canceled = String(h.status || "").toLowerCase() === "canceled";
+
+txnDetailBadge.innerHTML = canceled
+  ? `<span class="badge unpaid">Dibatalkan</span>`
+  : (paid
+      ? `<span class="badge paid">Lunas</span>`
+      : `<span class="badge unpaid">Belum Lunas</span>`
+    );
+
 
   const phone = h.shipping_phone || "-";
   const total = Number(h.grand_total || 0);
@@ -3353,6 +3297,121 @@ function renderTransactionDetail(txn){
 
   txnDetailActions.style.display = "flex";
 }
+// ==============================
+// ✅ CANCEL TRANSACTION (TAHAP 1: UI TEST ONLY)
+// ==============================
+// ==============================
+// ✅ CANCEL TRANSACTION (FINAL)
+// - insert log ke pos_canceled_orders
+// - update status di pos_sales_orders
+// ==============================
+async function txnCancelTransaction(){
+  if (!TXN_SELECTED || !TXN_SELECTED.salesorder_no) {
+    alert("Pilih transaksi dulu.");
+    return;
+  }
+
+  const orderNo = TXN_SELECTED.salesorder_no;
+
+  // 🔒 kalau sudah canceled, stop
+  const alreadyCanceled =
+    String(TXN_SELECTED?.header?.status || "").toLowerCase() === "canceled";
+
+  if (alreadyCanceled) {
+    alert("Transaksi ini sudah dibatalkan.");
+    return;
+  }
+
+  if (!confirm(`Batalkan transaksi ini?\n\n${orderNo}`)) return;
+
+  // UI indikator
+  if (txnDetailBadge) {
+    txnDetailBadge.innerHTML = `<span class="badge unpaid">CANCELING...</span>`;
+  }
+
+  const btnCancel = document.getElementById("btnTxnCancel");
+  if (btnCancel) {
+    btnCancel.disabled = true;
+    btnCancel.style.opacity = "0.6";
+    btnCancel.style.cursor = "not-allowed";
+    btnCancel.textContent = "⛔ Membatalkan...";
+  }
+
+  try {
+    // 1) INSERT LOG cancel (biar ada audit trail)
+    const payload = {
+      salesorder_no: orderNo,
+      created_by: (window.currentUserEmail || null),
+      note: "Canceled from POS",
+    };
+
+    // insert log -> kalau duplicate, kita anggap oke
+    const { error: logErr } = await sb
+  .from("pos_canceled_orders")
+  .upsert(payload, { onConflict: "salesorder_no" });
+
+
+    if (logErr) {
+      const msg = (logErr?.message || "").toLowerCase();
+      const isDup =
+        msg.includes("duplicate") ||
+        msg.includes("unique") ||
+        msg.includes("already exists");
+
+      if (!isDup) throw logErr;
+    }
+
+    // 2) UPDATE status order (INI KUNCI)
+    const { error: updErr } = await sb
+      .from("pos_sales_orders")
+      .update({
+        status: "canceled",
+        canceled_at: new Date().toISOString(),
+        canceled_by: (window.currentUserEmail || CASHIER_NAME || null),
+      })
+      .eq("salesorder_no", orderNo);
+
+    if (updErr) throw updErr;
+
+    // 3) Update state lokal biar detail langsung berubah tanpa reload
+    if (TXN_SELECTED?.header) {
+      TXN_SELECTED.header.status = "canceled";
+    }
+
+    // 4) UI badge sukses
+    if (txnDetailBadge) {
+      txnDetailBadge.innerHTML = `<span class="badge unpaid">Dibatalkan</span>`;
+    }
+    if (btnCancel) {
+      btnCancel.textContent = "✅ Sudah dibatalkan";
+    }
+
+    // 5) refresh list transaksi supaya badge ikut berubah di list kiri
+    await loadTransactions(false);
+
+    // 6) render ulang detail (biar status nya konsisten)
+    renderTransactionDetail(TXN_SELECTED);
+
+  } catch (err) {
+    console.error("❌ Cancel error:", err);
+console.error("❌ Cancel error:", err);
+alert("Gagal cancel: " + (err?.message || JSON.stringify(err)));
+
+    if (txnDetailBadge) {
+      txnDetailBadge.innerHTML = `<span class="badge unpaid">Gagal</span>`;
+    }
+
+    if (btnCancel) {
+      btnCancel.disabled = false;
+      btnCancel.style.opacity = "1";
+      btnCancel.style.cursor = "pointer";
+      btnCancel.textContent = "⛔ Batalkan (Retry)";
+    }
+
+    alert("Gagal membatalkan transaksi.\n\n" + (err?.message || err));
+  }
+}
+
 
 function txnReprint(){
   if (!TXN_SELECTED) return;
@@ -4258,10 +4317,12 @@ piutang: Number(appliedObj["Piutang"] || 0)
   if (txnPagingButtons[0]) txnPagingButtons[0].setAttribute("onclick", "txnPrevPage()");
   if (txnPagingButtons[1]) txnPagingButtons[1].setAttribute("onclick", "txnNextPage()");
 
-  const txnActions = document.querySelectorAll("#txnDetailActions button");
-  if (txnActions[0]) txnActions[0].setAttribute("onclick", "txnReprint()");
-  if (txnActions[1]) txnActions[1].setAttribute("onclick", "txnSyncJubelio()");
-  if (txnActions[2]) txnActions[2].setAttribute("onclick", "txnReorder()");
+const txnActions = document.querySelectorAll("#txnDetailActions button");
+if (txnActions[0]) txnActions[0].setAttribute("onclick", "txnReprint()");
+if (txnActions[1]) txnActions[1].setAttribute("onclick", "txnCancelTransaction()");
+if (txnActions[2]) txnActions[2].setAttribute("onclick", "txnReorder()");
+
+
 
   const manualSyncButton = document.querySelector("#panel-settings .btn-primary");
   if (manualSyncButton) manualSyncButton.setAttribute("onclick", "manualSyncProducts()");
