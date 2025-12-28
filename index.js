@@ -2038,7 +2038,13 @@ function addNonCashLine(method){
 
   // default amount = sisa tagihan
   const rem = remainingAmount();
-  const defaultAmt = rem > 0 ? rem : total; // kalau sudah lunas, fallback total
+  if (rem <= 0) {
+  alert("Pembayaran sudah lunas. Kalau mau ubah, edit/hapus salah satu metode dulu.");
+  return;
+}
+
+const defaultAmt = rem;
+
 
   upsertNonCashLine(method, methodLabel(method), defaultAmt);
 
@@ -2076,12 +2082,9 @@ function bindPaymentMethodButtons(){
     btn.dataset.bound = "1";
 
     btn.addEventListener("click", () => {
-
-      cashInput.value = "";
       changeOutput.textContent = formatRupiah(0);
 
-      document.querySelectorAll(".pay-method-btn")
-        .forEach(b => b.classList.remove("active"));
+
       btn.classList.add("active");
 
       selectedPaymentMethod = btn.dataset.method;
@@ -2093,29 +2096,27 @@ function bindPaymentMethodButtons(){
 
   renderQuickCashButtons();
   if (quickCash) quickCash.style.display = "flex";
-
 } else if (selectedPaymentMethod === "piutang") {
 
-  // ✅ PIUTANG: tidak ada input cash, tidak ada quick cash
+  if (PAYMENT_LINES.length > 0) {
+    alert("Piutang harus berdiri sendiri. Hapus pembayaran lain dulu.");
+    return;
+  }
+
   cashInput.value = "";
   cashInput.disabled = true;
   cashInput.readOnly = true;
   if (quickCash) quickCash.style.display = "none";
-if (PAYMENT_LINES.length > 0) {
-  alert("Piutang harus berdiri sendiri. Hapus pembayaran lain dulu.");
-  return;
-}
 
-  // ✅ set payment line khusus piutang
   PAYMENT_LINES = [{
     method: "piutang",
     label: methodLabel("piutang"),
-    amount: calcTotal() // total dicatat sebagai piutang
+    amount: calcTotal()
   }];
 
   recalcPaymentStatus();
-
-} else {
+}
+ else {
 
   cashInput.disabled = true;
   cashInput.readOnly = true;
