@@ -184,77 +184,84 @@
       <section class="payment-page" id="panel-payment" style="display:none">
         <div class="payment-wrapper">
           <div class="payment-left">
-            <h2>Ringkasan Pembayaran</h2>
 
-            <div class="pay-summary">
-              <div class="row">
-                <span>Total Item</span>
-                <strong id="payItemCount">0</strong>
-              </div>
-              <div class="row">
-                <span>Total Bayar</span>
-                <strong id="payTotal">Rp 0</strong>
-              </div>
-            </div>
+  <!-- ✅ TAMBAH: wrapper scroll -->
+  <div class="payment-scroll">
 
-            <div id="payLinesBox" style="
-              margin-top:14px;
-              border:1px solid #eee;
-              border-radius:10px;
-              overflow:hidden;
-            ">
-              <div id="payLinesList"></div>
+    <h2>Ringkasan Pembayaran</h2>
 
-              <div style="
-                display:flex;
-                justify-content:space-between;
-                padding:10px 12px;
-                border-top:1px solid #eee;
-                background:#fafafa;
-                font-size:13px;
-              ">
-                <span>Sisa</span>
-                <strong id="payRemaining">Rp 0</strong>
-              </div>
-            </div>
+    <div class="pay-summary">
+      <div class="row">
+        <span>Total Item</span>
+        <strong id="payItemCount">0</strong>
+      </div>
+      <div class="row">
+        <span>Total Bayar</span>
+        <strong id="payTotal">Rp 0</strong>
+      </div>
+    </div>
 
-            <div class="pay-method">
-              <label>Metode Pembayaran</label>
-              <div class="pay-method-grid">
-                <button class="pay-method-btn" data-method="cash">💵 Cash</button>
-                <button class="pay-method-btn" data-method="debit_bca">🏦 Debit BCA</button>
-                <button class="pay-method-btn" data-method="debit_mandiri">🏦 Debit Mandiri</button>
-                <button class="pay-method-btn" data-method="qris_gopay">📱 QRIS GoPay</button>
-                <button class="pay-method-btn" data-method="transfer_bca">🔁 Transfer BCA</button>
-				  <button class="pay-method-btn" data-method="piutang">⏳💰Piutang</button>
+    <div id="payLinesBox" style="
+      margin-top:14px;
+      border:1px solid #eee;
+      border-radius:10px;
+      overflow:hidden;
+    ">
+      <div id="payLinesList"></div>
 
-              </div>
-            </div>
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        padding:10px 12px;
+        border-top:1px solid #eee;
+        background:#fafafa;
+        font-size:13px;
+      ">
+        <span>Sisa</span>
+        <strong id="payRemaining">Rp 0</strong>
+      </div>
+    </div>
 
-            <div class="quick-cash" id="quickCash" style="display:none; margin-top:12px; gap:10px;">
-              <button class="btn" type="button">Sama</button>
-              <button class="btn" type="button">Rp50.000</button>
-              <button class="btn" type="button">Rp100.000</button>
-            </div>
+    <div class="pay-method">
+      <label>Metode Pembayaran</label>
+      <div class="pay-method-grid">
+        <button class="pay-method-btn" data-method="cash">💵 Cash</button>
+        <button class="pay-method-btn" data-method="debit_bca">🏦 Debit BCA</button>
+        <button class="pay-method-btn" data-method="debit_mandiri">🏦 Debit Mandiri</button>
+        <button class="pay-method-btn" data-method="qris_gopay">📱 QRIS GoPay</button>
+        <button class="pay-method-btn" data-method="transfer_bca">🔁 Transfer BCA</button>
+        <button class="pay-method-btn" data-method="piutang">⏳💰Piutang</button>
+      </div>
+    </div>
 
-            <div class="pay-input" style="margin-top:16px;">
-              <label>Uang Diterima</label>
-              <input type="number" id="cashInput" placeholder="Masukkan nominal"
-                style="width:100%;padding:10px;font-size:15px;margin-top:6px;" />
-            </div>
+    <div class="quick-cash" id="quickCash" style="display:none; margin-top:12px; gap:10px;">
+      <button class="btn" type="button">Sama</button>
+      <button class="btn" type="button">Rp50.000</button>
+      <button class="btn" type="button">Rp100.000</button>
+    </div>
 
-            <div class="pay-change">
-              Kembalian: <strong id="changeOutput">Rp 0</strong>
-            </div>
+    <div class="pay-input" style="margin-top:16px;">
+      <label>Uang Diterima</label>
+      <input type="number" id="cashInput" placeholder="Masukkan nominal"
+        style="width:100%;padding:10px;font-size:15px;margin-top:6px;" />
+    </div>
 
-            <div class="pay-footer-row">
-              <button id="btnFinishPayment" class="btn-pay disabled" disabled>
-                Selesaikan Transaksi
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
+    <div class="pay-change">
+      Kembalian: <strong id="changeOutput">Rp 0</strong>
+    </div>
+
+   </div> <!-- ✅ END wrapper scroll -->
+
+  <div class="pay-footer-row">
+    <button id="btnFinishPayment" class="btn-pay disabled" disabled>
+      Selesaikan Transaksi
+    </button>
+  </div>
+
+</div> <!-- tutup payment-left -->
+</div> <!-- ✅ tutup payment-wrapper -->
+</section>
+
 
       <!-- =================================================
            PANEL TRANSAKSI
