@@ -485,8 +485,9 @@ body{
 .payment-wrapper {
   display: flex;
   gap: 24px;
-  height: 100%;
+  min-height: 0;   /* ✅ penting untuk flex child */
 }
+
 
 .payment-left {
   flex: 1;
@@ -495,7 +496,14 @@ body{
   padding: 20px;
   display: flex;
   flex-direction: column;
-  height: 100%;
+
+  min-height: 0;     /* ✅ biar isi flex tidak kepotong */
+  overflow: auto;    /* ✅ kalau kepanjangan, dia scroll */
+}
+
+#payLinesBox{
+  position: relative;
+  z-index: 5;
 }
 
 .pay-summary .row {
