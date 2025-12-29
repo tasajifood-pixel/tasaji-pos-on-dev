@@ -22,6 +22,133 @@ const sb = window.supabase.createClient(
   "https://fpjfdxpdaqtopjorqood.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwamZkeHBkYXF0b3Bqb3Jxb29kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA5NjU2NDUsImV4cCI6MjA3NjU0MTY0NX0.7cSIF32p9SHaHHlUcMFrrQSq7JBOdP4LneEvcMRrtXU"
 );
+
+
+/* =====================================================
+   CASHIER (Supabase-driven)
+   - List kasir di welcomeScreen diambil dari Supabase (table: pos_cashiers).
+   Expected columns:
+     - cashier_id   (text)  contoh: "KSR-01"
+     - cashier_name (text)
+     - is_active    (bool)
+     - sort_order   (int)
+===================================================== */
+
+const CASHIER_TABLE = "pos_cashiers";
+
+function removeSwitchCashierUI(){
+  const btn = document.getElementById("btnSwitchCashier");
+  if (btn) btn.remove();
+}
+
+function parseKasirNo(cashier_id){
+  const s = String(cashier_id || "");
+  // ambil angka terakhir: KSR-01 -> 01
+  const m = s.match(/(\d+)\s*$/) || s.match(/(\d+)/);
+  return m ? String(m[1]).padStart(2, "0") : "";
+}
+
+function makeCashierButtonText(c){
+  const id = c?.cashier_id || "";
+  const name = c?.cashier_name || "";
+  const no = parseKasirNo(id);
+  const kasirLabel = no ? `Kasir ${no}` : id;
+  return `${name} — ${kasirLabel}`.trim();
+}
+
+function getCachedCashiers(){
+  try {
+    const raw = localStorage.getItem("pos_cashiers_cache");
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    return Array.isArray(obj?.data) ? obj.data : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchCashiersFromSupabase(){
+  if (!navigator.onLine) return null;
+
+  try {
+    const { data, error } = await sb
+      .from(CASHIER_TABLE)
+      .select("cashier_id,cashier_name,is_active,sort_order")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
+
+    if (error) throw error;
+
+    if (Array.isArray(data)) {
+      localStorage.setItem("pos_cashiers_cache", JSON.stringify({ ts: Date.now(), data }));
+    }
+
+    return data || null;
+  } catch (e) {
+    console.warn("fetchCashiersFromSupabase gagal:", e);
+    return null;
+  }
+}
+
+function renderCashierButtons(cashiers){
+  const wrap = document.getElementById("welcomeScreen");
+  if (!wrap) return;
+
+  // cari container yang paling cocok untuk taruh tombol
+  let listBox =
+    wrap.querySelector(".cashier-list") ||
+    wrap.querySelector(".cashier-buttons") ||
+    wrap;
+
+  let btns = Array.from(listBox.querySelectorAll(".btn-cashier"));
+
+  // kalau belum ada tombol sama sekali, buat container sederhana
+  if (btns.length === 0) {
+    const box = document.createElement("div");
+    box.className = "cashier-list";
+    box.style.display = "flex";
+    box.style.flexDirection = "column";
+    box.style.gap = "16px";
+    listBox.appendChild(box);
+    listBox = box;
+    btns = [];
+  }
+
+  // pastikan jumlah tombol cukup
+  while (btns.length < cashiers.length) {
+    const b = document.createElement("button");
+    b.className = "btn-cashier";
+    listBox.appendChild(b);
+    btns.push(b);
+  }
+
+  // isi tombol sesuai data kasir
+  btns.forEach((b, i) => {
+    const c = cashiers[i];
+    if (!c) {
+      b.style.display = "none";
+      b.onclick = null;
+      return;
+    }
+    b.style.display = "";
+    b.textContent = makeCashierButtonText(c);
+    b.onclick = () => selectCashier(c.cashier_id, c.cashier_name);
+  });
+}
+
+async function loadAndRenderCashiers(){
+  let cashiers = await fetchCashiersFromSupabase();
+  if (!cashiers || !cashiers.length) cashiers = getCachedCashiers() || [];
+
+  // jangan fallback hardcode lagi (biar benar-benar fokus Supabase)
+  if (!cashiers.length) {
+    console.warn("Cashier list kosong. Pastikan table pos_cashiers terisi (minimal 1 kasir aktif).");
+    return;
+  }
+
+  renderCashierButtons(cashiers);
+}
+
 	
 // ===============================
 // CANCEL CACHE (READ FROM DB)
@@ -411,18 +538,6 @@ function isOrderActive(){
 }
 
 
-function updateSwitchCashierButton(){
-  const btn = document.getElementById("btnSwitchCashier");
-  if(!btn) return;
-
-  const locked = isOrderActive();
-  btn.disabled = locked;
-  btn.style.opacity = locked ? "0.5" : "1";
-  btn.style.cursor = locked ? "not-allowed" : "pointer";
-  btn.title = locked
-    ? "Tidak bisa ganti kasir saat ada transaksi aktif. Selesaikan atau Reset dulu."
-    : "Ganti kasir";
-}
 
 // ===== UTILITIES =====
 const formatRupiah = n => "Rp " + Number(n || 0).toLocaleString("id-ID");
@@ -701,9 +816,7 @@ CURRENT_HOLD_ID = h.id; // ✅ tandai sedang buka hold ini
   panelPayment.style.display = "none";
   panelProduct.style.display = "flex";
   btnNext.style.display = "block";
-
-  updateSwitchCashierButton();
-  closeHoldModal();
+closeHoldModal();
 }
 
 function deleteHold(id){
@@ -1736,8 +1849,7 @@ function renderCart(){
     itemCount.textContent=count;
     cartSubtotal.textContent=formatRupiah(total);
     cartTotal.textContent=formatRupiah(total);
-    updateSwitchCashierButton();
-    return;
+return;
   }
 
   cart.forEach(i=>{
@@ -1776,7 +1888,6 @@ function renderCart(){
   itemCount.textContent=count;
   cartSubtotal.textContent=formatRupiah(total);
   cartTotal.textContent=formatRupiah(total);
-  updateSwitchCashierButton();
 }
 
 /* =====================================================
@@ -2834,7 +2945,6 @@ function loadOfflineTransactions(){
 }
 
 // ==============================
-// RESET UI TRANSAKSI (WAJIB SAAT GANTI KASIR)
 // ==============================
 function resetTransactionUI(){
   // reset state
@@ -3706,9 +3816,7 @@ if (isOnline()) {
   await loadProducts();
   renderCart();
   updateOrderNumberUI();
-  updateSwitchCashierButton();
-
-  if (ACTIVE_CUSTOMER) {
+if (ACTIVE_CUSTOMER) {
     const input = document.getElementById("customerInput");
     if (input) {
       input.value = ACTIVE_CUSTOMER.contact_name + " (" + ACTIVE_CUSTOMER.category_display + ")";
@@ -3745,7 +3853,7 @@ function selectCashier(id, name){
   }
 
   document.getElementById("welcomeScreen").style.display = "none";
-    updateSwitchCashierButton(); // ✅ tambah ini
+// ✅ tambah ini
 	  // ⬇️ PAKSA TAMPILKAN POS
   panelProduct.style.display = "flex";
   panelPayment.style.display = "none";
@@ -3785,28 +3893,6 @@ function checkCashier(){
 
 }
 
-function resetCashier(){
-// ✅ OPSI A: kunci ganti kasir saat transaksi aktif
-  if (isOrderActive()){
-    alert("Tidak bisa ganti kasir saat ada transaksi aktif.\nSelesaikan transaksi atau klik Reset dulu.");
-    return;
-  }
-  if (!confirm("Ganti kasir? Transaksi berjalan akan tetap aman.")) return;
-
-  localStorage.removeItem("pos_cashier_id");
-  localStorage.removeItem("pos_cashier_name");
-
-  CASHIER_ID = null;
-  CASHIER_NAME = null;
-
-  updateCashierInfo();
-  updateTxnHead();
-
-  // ✅ ini WAJIB
-  resetTransactionUI();
-
-  document.getElementById("welcomeScreen").style.display = "flex";
-}
 
 function updateTxnHead(){
   const el = document.getElementById("txnListHead");
@@ -4350,22 +4436,10 @@ async function loadReport(forceRefresh){
 }
 
 
-  const cashierButtons = document.querySelectorAll("#welcomeScreen .btn-cashier");
-  const cashierHandlers = [
-    "selectCashier('KSR-01','Rifqi')",
-    "selectCashier('KSR-02','Inan')",
-    "selectCashier('KSR-03','Imad')",
-    "selectCashier('KSR-04','Ahmad')"
-  ];
-  cashierButtons.forEach((btn, idx) => {
-    const handler = cashierHandlers[idx];
-    if (handler) btn.setAttribute("onclick", handler);
-  });
+  
+  // ✅ Cashier buttons akan dirender dari Supabase (lihat loadAndRenderCashiers)
 
-  const btnSwitchCashier = document.getElementById("btnSwitchCashier");
-  if (btnSwitchCashier) btnSwitchCashier.setAttribute("onclick", "resetCashier()");
-
-  const tabSales = document.getElementById("tabSales");
+const tabSales = document.getElementById("tabSales");
   if (tabSales) tabSales.setAttribute("onclick", "switchLeftTab(\'sales\')");
   const tabTxn = document.getElementById("tabTxn");
   if (tabTxn) tabTxn.setAttribute("onclick", "switchLeftTab(\'txn\')");
@@ -4432,3 +4506,10 @@ if (txnActions[2]) txnActions[2].setAttribute("onclick", "txnReorder()");
   const holdToolbarButtons = document.querySelectorAll("#holdModal .btn-outline");
 if (holdToolbarButtons[0]) holdToolbarButtons[0].setAttribute("onclick", "refreshHoldList()");
 if (holdToolbarButtons[1]) holdToolbarButtons[1].setAttribute("onclick", "closeHoldModal()");
+
+// ===== BOOT =====
+document.addEventListener("DOMContentLoaded", () => {
+  removeSwitchCashierUI();
+  loadAndRenderCashiers();
+});
+
